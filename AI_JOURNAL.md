@@ -39,3 +39,10 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Asked (my idea): a feature branch per phase, commit there, merge into `main`.
 - Accepted from the AI: several small commits per branch, `--no-ff` merges (not squash) so the panel sees each phase as a block with its steps, merge only when green.
 - Overrode: the AI proposed numbered branch names (`feature/01-scaffold`); I dropped the numbers (`feature/scaffold`), the merge order already shows the sequence.
+
+### 2026-11-21 · Phase 1 · Scaffold
+- Asked: Phase 1 per BACKEND.md §12: solution, projects, references, Serilog, OpenAPI + Scalar, ProblemDetails, docker compose.
+- Accepted: two-stage Serilog bootstrap; text logs locally, compact JSON in the container (`LogFormat=Json`); built-in OpenAPI 3.1 + Scalar (Development only); Bearer scheme transformer so Scalar can "Authorize"; CORS for `localhost:4200` with credentials (needed for SignalR later).
+- Challenged: correlation id is client input that goes into logs and Kafka headers, so the middleware only accepts `[A-Za-z0-9._-]{1,64}` and replaces anything else (log-injection guard). Covered by tests.
+- Challenged: unknown exceptions must not leak details; the 500 ProblemDetails has no `detail`. Covered by a test that a secret in the exception message never reaches the response.
+- Overrode: removed the template's WeatherForecast sample and HTTPS redirection (HTTP only behind compose/dev proxy). Did not add a Serilog `CorrelationIdEnricher` class (in the spec layout): `LogContext.PushProperty` in the middleware already covers every log line in the request, so the extra class would be dead weight.
