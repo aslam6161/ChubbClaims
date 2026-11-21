@@ -16,6 +16,14 @@ public interface IClaimRepository
     /// <summary>One page of the staff work queue, projected in SQL (no aggregate loading).</summary>
     Task<IReadOnlyList<WorkQueueRow>> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct);
 
+    /// <summary>
+    /// Assigned claims in a market that are open or were decided since <paramref name="decidedSince"/>:
+    /// the input for the team workload view (narrow projection, bounded by open workload).
+    /// </summary>
+    Task<IReadOnlyList<WorkloadClaimRow>> GetWorkloadRowsAsync(Market market, DateTimeOffset decidedSince, CancellationToken ct);
+
+    Task<int> CountUnassignedOpenAsync(Market market, CancellationToken ct);
+
     void Add(Claim claim);
 
     /// <summary>Next value of the claim number sequence (unique across concurrent submissions).</summary>
@@ -33,6 +41,9 @@ public interface IUserRepository
     Task<User?> GetAsync(Guid id, CancellationToken ct);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct);
     Task<IReadOnlyList<User>> ListAsync(CancellationToken ct);
+
+    /// <summary>Claims officers and managers of a market.</summary>
+    Task<IReadOnlyList<User>> GetStaffAsync(Market market, CancellationToken ct);
 }
 
 /// <summary>Commits all changes of the current request in one transaction (claim + children + outbox rows).</summary>
@@ -87,3 +98,23 @@ public interface IExposureRepository
 public sealed record ExposureKey(Market Market, string Currency, ClaimType ClaimType);
 
 public sealed record ExposureDelta(int OpenClaims, decimal OutstandingReserve);
+
+public sealed record WorkloadClaimRow(
+    Guid AssignedOfficerId, ClaimStatus Status, DateTimeOffset ReportedAt, DateTimeOffset SlaDueAt, DateTimeOffset? DecisionAt);
+
+public interface INotificationRepository
+{
+    /// <summary>
+    /// Stores the notifications for an event exactly once per (consumer group, event id).
+    /// Returns false for a duplicate delivery (nothing stored, nothing should be pushed).
+    /// </summary>
+    Task<bool> AddOnceAsync(string consumerGroup, Guid eventId, IReadOnlyList<Notification> notifications, CancellationToken ct);
+
+    Task<IReadOnlyList<Notification>> GetForUserAsync(Guid userId, int take, CancellationToken ct);
+    Task<int> CountUnreadAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>Tracked, so it can be marked read and saved.</summary>
+    Task<Notification?> GetAsync(Guid id, CancellationToken ct);
+
+    Task<int> MarkAllReadAsync(Guid userId, DateTimeOffset at, CancellationToken ct);
+}
