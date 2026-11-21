@@ -1,5 +1,6 @@
 using ChubbClaims.Domain.Entity;
 using ChubbClaims.Domain.Enums;
+using ChubbClaims.Domain.Exceptions;
 using ChubbClaims.Domain.Settings;
 using ChubbClaims.Domain.ValueObjects;
 using ChubbClaims.Repository.Interfaces;
@@ -155,5 +156,52 @@ public class ClaimServiceTests
 
         claim.Status.ShouldBe(ClaimStatus.AwaitingInformation);
         await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    // ------------------------------------------------------------ Officer actions
+
+    [Fact]
+    public async Task Officer_action_runs_the_domain_method_and_saves_once()
+    {
+        var claim = StoredClaim(ClaimStatus.UnderReview);
+
+        await ServiceFor(Officer).ApproveAsync(claim.Id, new ApproveClaimRequest(9_000m, "Agreed"), CancellationToken.None);
+
+        claim.Status.ShouldBe(ClaimStatus.Approved);
+        claim.SettlementAmount.ShouldBe(9_000m);
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Officer_from_another_market_gets_404_before_any_domain_rule()
+    {
+        var claim = StoredClaim();
+
+        await Should.ThrowAsync<NotFoundException>(() => ServiceFor(SgOfficer).PickUpAsync(claim.Id, CancellationToken.None));
+
+        claim.AssignedOfficerId.ShouldBeNull();
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Same_market_officer_who_is_not_assigned_is_refused_by_the_aggregate()
+    {
+        var claim = StoredClaim(ClaimStatus.UnderReview);
+
+        await Should.ThrowAsync<ClaimAccessDeniedException>(() =>
+            ServiceFor(OtherOfficer).RejectAsync(claim.Id, new RejectClaimRequest("No"), CancellationToken.None));
+
+        claim.Status.ShouldBe(ClaimStatus.UnderReview);
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Pick_up_assigns_the_caller()
+    {
+        var claim = StoredClaim();
+
+        await ServiceFor(Manager).PickUpAsync(claim.Id, CancellationToken.None);
+
+        claim.AssignedOfficerId.ShouldBe(Manager.UserId);
     }
 }
