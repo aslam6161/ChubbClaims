@@ -201,3 +201,11 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Verified: Vitest 64/64; production build 94.42 kB initial transfer; browser checks again, on fresh seeds: login 15/15, claimant 19/19, officer 20/20, realtime 13/13, officer Team 2/2, phone width 7/7. Screenshots taken on a fresh seed. Backend tests 206/206 (the README said 203; corrected).
 - Not done, and said so in the README: a committed Playwright suite, an nginx container for the web app, the notification bell. I didn't put a frontend duration in the README: commit times show when phases were reviewed and merged, not when work started.
 
+### 2026-11-21 · Web theme · Brand colour and logo
+- Asked (after seeing it run): the UI looked plain; apply an orange brand colour and add the Chubb logo, with a triangle instead of a bar as the accent.
+- Accepted: orange Material 3 theme with overrides. Filled buttons use a deeper burnt orange (#c2410c, white text 5.2:1, WCAG AA); the bright orange (#f97316) is only for accents, since white text on it would be 2.8:1. Dark toolbar with an orange edge; the logo is kept beside the product name, and the sign-in page still says it's a development sign-in, so it reads as a demo app.
+- **Caught a side effect:** the "Under review" badge used the primary container colour, so it would have turned orange and looked like "Awaiting information". It's now an explicit blue.
+- **Two styling bugs found from screenshots, not by guessing:** (1) toolbar nav labels went dark-on-dark because Material resets button colours inside a toolbar from the toolbar's own token, so I set `--mat-toolbar-container-text-color`; (2) the brand name turned orange because the new global link colour outranked the toolbar's rule, so the global rule is now wrapped in `:where()` (zero specificity).
+- Logo: black and white 2x PNGs (about 3.5 KB each) made from the supplied image's transparency, not a CSS invert. Decorative in the toolbar (the link is labelled), alt text "Chubb" on sign-in. The phone-width check caught the staff toolbar 2 px too wide with the logo, so it's smaller below 640 px; 7/7 again.
+- Verified: Vitest 64/64, production build 94.54 kB initial transfer, Prettier clean; README screenshots retaken on a fresh seed.
+

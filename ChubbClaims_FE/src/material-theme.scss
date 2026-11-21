@@ -10,13 +10,29 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$orange-palette,
+        tertiary: mat.$red-palette,
       ),
       typography: Roboto,
       density: 0,
     )
   );
+
+  // Brand orange. Filled buttons use the deeper shade so white text on them stays readable
+  // (5.2:1, WCAG AA); the bright orange is for accents only (white on it would be 2.8:1).
+  @include mat.theme-overrides(
+    (
+      primary: #c2410c,
+      on-primary: #ffffff,
+      primary-container: #ffedd5,
+      on-primary-container: #7c2d12,
+      secondary-container: #ffedd5,
+      on-secondary-container: #7c2d12,
+    )
+  );
+
+  --brand-orange: #f97316;
+  --brand-ink: #1f1a17;
 }
 
 body {

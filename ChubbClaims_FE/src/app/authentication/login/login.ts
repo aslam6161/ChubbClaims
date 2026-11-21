@@ -2,7 +2,6 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 import { homeUrlFor, roleLabel } from '../../_helpers/home-route';
@@ -15,7 +14,7 @@ import { DevAuth } from '../dev-auth';
 /** Pick a seeded user to sign in as (development only; there is no password). */
 @Component({
   selector: 'app-login',
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, PageState],
+  imports: [MatButtonModule, MatCardModule, MatProgressSpinnerModule, PageState],
   templateUrl: './login.html',
   styleUrl: './login.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

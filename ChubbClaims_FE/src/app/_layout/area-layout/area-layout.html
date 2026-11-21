@@ -1,7 +1,7 @@
 <mat-toolbar class="toolbar">
-  <a class="brand" [routerLink]="home()">
-    <mat-icon>shield</mat-icon>
-    <span>Claims Platform</span>
+  <a class="brand" [routerLink]="home()" aria-label="Chubb Claims: home">
+    <img src="brand/logo-white.png" alt="" width="148" height="15" />
+    <span>Claims</span>
   </a>
   <nav aria-label="Main">
     @for (link of nav(); track link.path) {

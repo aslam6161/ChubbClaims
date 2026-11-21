@@ -54,6 +54,7 @@ Claim pages, lists and the Team page update themselves over SignalR when somethi
 - **A push is a hint, REST is the truth.** A SignalR message only triggers a re-fetch, so the UI never trusts data the push carried.
 - **No global store (NgRx).** Almost all state is server state, held per screen; only the session is global.
 - **Money is always shown per currency, with 2 decimals.** Amounts are never added across currencies.
+- **Brand colours with contrast in mind:** filled buttons use a deeper orange so white text passes WCAG AA; the bright orange is for accents. Status colours stay distinct from the brand colour.
 - Angular 22 defaults throughout: standalone, zoneless, OnPush, built-in control flow, `@Service()`, Vitest.
 
 ## Layout

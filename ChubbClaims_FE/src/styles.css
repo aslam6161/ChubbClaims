@@ -1,3 +1,10 @@
+/* Links in content (e.g. claim numbers) use the brand colour, not the browser's default blue. */
+/* :where() keeps this at zero specificity, so any component's own link style wins. */
+:where(a:not([mat-button], [mat-flat-button], [mat-stroked-button])) {
+  color: var(--mat-sys-primary);
+  text-underline-offset: 2px;
+}
+
 /* Responsive basics shared by every screen (no mobile-specific layouts: out of scope). */
 
 /* A wide table scrolls inside its own box; the page itself never scrolls sideways. */
