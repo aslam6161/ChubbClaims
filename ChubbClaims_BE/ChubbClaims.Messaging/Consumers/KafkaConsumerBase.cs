@@ -23,6 +23,8 @@ namespace ChubbClaims.Messaging.Consumers;
 public abstract class KafkaConsumerBase(
     IServiceScopeFactory scopes, KafkaTopicInitializer topics, KafkaSettings settings, ILogger logger) : BackgroundService
 {
+    protected KafkaSettings Settings { get; } = settings;
+
     protected abstract string ConsumerGroup { get; }
 
     protected abstract Task HandleAsync(EventEnvelope envelope, IServiceProvider services, CancellationToken ct);
@@ -37,13 +39,13 @@ public abstract class KafkaConsumerBase(
 
         using var consumer = new ConsumerBuilder<string, string>(new ConsumerConfig
         {
-            BootstrapServers = settings.BootstrapServers,
+            BootstrapServers = Settings.BootstrapServers,
             GroupId = ConsumerGroup,
             EnableAutoCommit = false,
             AutoOffsetReset = AutoOffsetReset.Earliest, // a new group starts from the beginning of the topic
         }).Build();
-        consumer.Subscribe(settings.Topic);
-        logger.LogInformation("Consumer group {ConsumerGroup} subscribed to {Topic}", ConsumerGroup, settings.Topic);
+        consumer.Subscribe(Settings.Topic);
+        logger.LogInformation("Consumer group {ConsumerGroup} subscribed to {Topic}", ConsumerGroup, Settings.Topic);
 
         try
         {

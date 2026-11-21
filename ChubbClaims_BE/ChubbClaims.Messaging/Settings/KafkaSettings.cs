@@ -16,4 +16,10 @@ public sealed class KafkaSettings
 
     public int PublishBatchSize { get; set; } = 100;
     public int PublishIntervalMs { get; set; } = 1000;
+
+    /// <summary>
+    /// The notifier ignores events older than this: a notification or push about a days-old change
+    /// is noise (it would also flood users after replaying the topic or seeding history).
+    /// </summary>
+    public int NotificationMaxAgeMinutes { get; set; } = 24 * 60;
 }
