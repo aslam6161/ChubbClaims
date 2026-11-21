@@ -44,6 +44,21 @@ nav a.active {
   .who {
     display: none;
   }
+  .brand {
+    margin-right: 0;
+  }
+  /* Icons only on phones; the labels stay in the accessibility tree. */
+  .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .live {
+    margin-right: 0;
+  }
 }
 .live {
   display: flex;
