@@ -1,0 +1,64 @@
+<main class="login">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>shield</mat-icon>
+      <mat-card-title>Claims Platform</mat-card-title>
+      <mat-card-subtitle>Development sign-in: choose a demo user</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (expired()) {
+        <p class="notice" role="status">Your session ended. Please sign in again.</p>
+      }
+      @if (error(); as err) {
+        <p class="notice notice--error" role="alert">{{ err.userMessage }}</p>
+      }
+
+      <app-page-state
+        [loading]="users.isLoading()"
+        [error]="users.error()"
+        [empty]="(users.value() ?? []).length === 0"
+        emptyMessage="No demo users found. Is the API running with seed data?"
+        (retry)="users.reload()"
+      >
+        @for (
+          group of [
+            { title: 'Claimants', list: claimants() },
+            { title: 'Claims staff', list: staff() },
+          ];
+          track group.title
+        ) {
+          <h2>{{ group.title }}</h2>
+          <ul>
+            @for (user of group.list; track user.id) {
+              <li>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="user"
+                  [disabled]="signingInAs() !== null"
+                  (click)="signIn(user)"
+                >
+                  <span class="user__name">{{ user.name }}</span>
+                  <span class="user__meta">
+                    {{ roleLabel(user.role) }}
+                    @if (user.market) {
+                      · {{ user.market }}
+                    }
+                    · {{ user.email }}
+                  </span>
+                  @if (signingInAs() === user.email) {
+                    <mat-progress-spinner diameter="18" mode="indeterminate" />
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </app-page-state>
+    </mat-card-content>
+  </mat-card>
+  <p class="footnote">
+    No password: this stands in for a real identity provider and only exists in Development.
+  </p>
+</main>

@@ -1,0 +1,27 @@
+<mat-toolbar class="toolbar">
+  <a class="brand" [routerLink]="home()">
+    <mat-icon>shield</mat-icon>
+    <span>Claims Platform</span>
+  </a>
+  <nav aria-label="Main">
+    @for (link of nav(); track link.path) {
+      <a mat-button [routerLink]="link.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <mat-icon>{{ link.icon }}</mat-icon>
+        {{ link.label }}
+      </a>
+    }
+  </nav>
+  <span class="spacer"></span>
+  @if (user(); as u) {
+    <span class="who">
+      <strong>{{ u.name }}</strong>
+      <small>{{ who() }}</small>
+    </span>
+  }
+  <button mat-icon-button type="button" (click)="signOut()" aria-label="Sign out" title="Sign out">
+    <mat-icon>logout</mat-icon>
+  </button>
+</mat-toolbar>
+<main class="content">
+  <router-outlet />
+</main>

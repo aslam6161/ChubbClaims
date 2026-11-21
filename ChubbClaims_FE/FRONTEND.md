@@ -91,8 +91,9 @@ ChubbClaims_FE/
     _shared/                           reusable standalone UI components
       status-badge/  money/  sla-chip/  page-state/  confirm-dialog/
     _layout/
-      claimant-layout/                 toolbar + nav for claimants
-      staff-layout/                    toolbar + nav for officers/managers
+      area-layout/                     toolbar + nav for a role area; links come from route data `nav`
+                                       (decided in phase 2: one layout instead of claimant-layout + staff-layout,
+                                       which only differed by their links)
     authentication/
       login/                           login.component.*  pick a seeded user → POST /api/auth/dev-login
     claimant/
