@@ -1,0 +1,72 @@
+h1 {
+  margin: 0 0 1rem;
+}
+section {
+  margin-bottom: 2rem;
+}
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+h2 {
+  font: var(--mat-sys-title-medium);
+  margin: 0;
+}
+.pill {
+  margin: 0;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--mat-sys-surface-container-high);
+}
+.pill--attention {
+  background: #ffe8b3;
+  color: #5c3d00;
+}
+.table {
+  width: 100%;
+}
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+.bad {
+  color: var(--mat-sys-error);
+  font-weight: 600;
+}
+.muted {
+  color: var(--mat-sys-on-surface-variant);
+}
+td .muted {
+  display: block;
+  font-size: 0.8rem;
+}
+.small {
+  font-size: 0.85rem;
+  margin: 0;
+}
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem;
+}
+.currency {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+}
+.amount {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
