@@ -1,6 +1,8 @@
+using ChubbClaims.Domain.Enums;
 using ChubbClaims.Service.DTOs.Auth;
 using ChubbClaims.Service.DTOs.Claims;
 using ChubbClaims.Service.DTOs.Policies;
+using ChubbClaims.Service.DTOs.WorkQueue;
 
 namespace ChubbClaims.Service.Interfaces;
 
@@ -34,4 +36,20 @@ public interface IClaimService
     Task<ClaimDetailResponse> GetAsync(Guid claimId, CancellationToken ct);
 
     Task RespondToInformationRequestAsync(Guid claimId, Guid requestId, InformationResponseRequest request, CancellationToken ct);
+
+    // Officer actions. Each loads a claim the caller may see (staff in its market), calls the
+    // aggregate method (which enforces lifecycle + assigned-officer rules) and saves.
+    Task PickUpAsync(Guid claimId, CancellationToken ct);
+    Task AdjustReserveAsync(Guid claimId, AdjustReserveRequest request, CancellationToken ct);
+    Task RequestInformationAsync(Guid claimId, RequestInformationRequest request, CancellationToken ct);
+    Task ApproveAsync(Guid claimId, ApproveClaimRequest request, CancellationToken ct);
+    Task SettleAsync(Guid claimId, CancellationToken ct);
+    Task RejectAsync(Guid claimId, RejectClaimRequest request, CancellationToken ct);
+    Task AddNoteAsync(Guid claimId, AddNoteRequest request, CancellationToken ct);
+}
+
+public interface IWorkQueueService
+{
+    /// <summary>The caller's market queue: unassigned claims, or the caller's own open claims.</summary>
+    Task<IReadOnlyList<WorkQueueItemResponse>> GetAsync(WorkQueueView view, ClaimStatus? status, WorkQueueSort sort, CancellationToken ct);
 }

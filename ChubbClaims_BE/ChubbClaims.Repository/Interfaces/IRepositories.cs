@@ -1,4 +1,5 @@
 using ChubbClaims.Domain.Entity;
+using ChubbClaims.Domain.Enums;
 
 namespace ChubbClaims.Repository.Interfaces;
 
@@ -9,6 +10,9 @@ public interface IClaimRepository
 
     /// <summary>The claimant's claims, newest first, without children (read-only list).</summary>
     Task<IReadOnlyList<Claim>> GetByClaimantAsync(Guid claimantId, CancellationToken ct);
+
+    /// <summary>One page of the staff work queue, projected in SQL (no aggregate loading).</summary>
+    Task<IReadOnlyList<WorkQueueRow>> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct);
 
     void Add(Claim claim);
 
@@ -34,3 +38,29 @@ public interface IUnitOfWork
 {
     Task SaveChangesAsync(CancellationToken ct);
 }
+
+public enum WorkQueueOrder
+{
+    SlaDueAt = 1,   // most urgent first
+    ReportedAt = 2, // oldest first
+}
+
+/// <summary>
+/// AssignedTo null = the unassigned queue of the market; otherwise that officer's claims.
+/// Without a status filter, closed claims are left out (a queue is open work).
+/// </summary>
+public sealed record WorkQueueFilter(Market Market, Guid? AssignedTo, ClaimStatus? Status, WorkQueueOrder Order, int Take);
+
+public sealed record WorkQueueRow(
+    Guid Id,
+    string ClaimNumber,
+    ClaimType Type,
+    Market Market,
+    ClaimStatus Status,
+    Priority Priority,
+    DateTimeOffset ReportedAt,
+    DateTimeOffset SlaDueAt,
+    DateTimeOffset? DecisionAt,
+    Guid? AssignedOfficerId,
+    decimal OutstandingReserve,
+    string Currency);

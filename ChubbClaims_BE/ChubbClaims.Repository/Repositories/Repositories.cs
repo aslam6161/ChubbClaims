@@ -1,4 +1,5 @@
 using ChubbClaims.Domain.Entity;
+using ChubbClaims.Domain.Enums;
 using ChubbClaims.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,34 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
             .Where(c => c.ClaimantId == claimantId) // uses IX_Claims_ClaimantId
             .OrderByDescending(c => c.ReportedAt)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<WorkQueueRow>> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct)
+    {
+        // Unassigned: IX_Claims_Status_Market. Mine: IX_Claims_AssignedOfficerId_Status.
+        var query = db.Claims.AsNoTracking().Where(c => c.Market == filter.Market);
+
+        query = filter.AssignedTo is { } officerId
+            ? query.Where(c => c.AssignedOfficerId == officerId)
+            : query.Where(c => c.AssignedOfficerId == null);
+
+        query = filter.Status is { } status
+            ? query.Where(c => c.Status == status)
+            : query.Where(c => c.Status != ClaimStatus.Settled && c.Status != ClaimStatus.Rejected);
+
+        query = filter.Order == WorkQueueOrder.SlaDueAt
+            ? query.OrderBy(c => c.SlaDueAt).ThenBy(c => c.ReportedAt)
+            : query.OrderBy(c => c.ReportedAt);
+
+        return await query
+            .Take(filter.Take)
+            .Select(c => new WorkQueueRow(
+                c.Id, c.ClaimNumber, c.Type, c.Market, c.Status, c.Priority, c.ReportedAt, c.SlaDueAt, c.DecisionAt,
+                c.AssignedOfficerId,
+                // Same rule as Claim.OutstandingReserve, written out so SQL can compute it.
+                c.Status == ClaimStatus.Settled || c.Status == ClaimStatus.Rejected ? 0m : c.ReserveAmount - c.PaidAmount,
+                c.Currency))
+            .ToListAsync(ct);
+    }
 
     public void Add(Claim claim) => db.Claims.Add(claim);
 
