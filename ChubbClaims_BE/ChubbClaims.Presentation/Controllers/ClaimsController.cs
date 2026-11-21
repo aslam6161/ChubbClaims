@@ -59,4 +59,99 @@ public sealed class ClaimsController(IClaimService claims) : BaseApiController
         await claims.RespondToInformationRequestAsync(id, requestId, request, ct);
         return NoContent();
     }
+
+    // ---------------------------------------------------------------- Officer actions
+    // Staff policy here; the aggregate additionally requires the caller to be in the claim's
+    // market and (except pick-up and notes) to be the assigned officer.
+
+    /// <summary>Take an unassigned claim. 409 if another officer picked it up first.</summary>
+    [HttpPost("{id:guid}/pick-up")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Pick up claim")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> PickUp(Guid id, CancellationToken ct)
+    {
+        await claims.PickUpAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>Change the reserve (expected liability). Reason required; never negative.</summary>
+    [HttpPut("{id:guid}/reserve")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Adjust reserve")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> AdjustReserve(Guid id, AdjustReserveRequest request, CancellationToken ct)
+    {
+        await claims.AdjustReserveAsync(id, request, ct);
+        return NoContent();
+    }
+
+    /// <summary>Ask the claimant a question; the claim waits for their answer.</summary>
+    [HttpPost("{id:guid}/information-requests")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Request information")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> RequestInformation(Guid id, RequestInformationRequest request, CancellationToken ct)
+    {
+        await claims.RequestInformationAsync(id, request, ct);
+        return NoContent();
+    }
+
+    /// <summary>Approve with a settlement amount; the reserve becomes that amount.</summary>
+    [HttpPost("{id:guid}/approve")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Approve claim")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
+    public async Task<IActionResult> Approve(Guid id, ApproveClaimRequest request, CancellationToken ct)
+    {
+        await claims.ApproveAsync(id, request, ct);
+        return NoContent();
+    }
+
+    /// <summary>Record payment of the approved settlement and close the claim.</summary>
+    [HttpPost("{id:guid}/settle")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Settle claim")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> Settle(Guid id, CancellationToken ct)
+    {
+        await claims.SettleAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>Reject with a reason and close the claim.</summary>
+    [HttpPost("{id:guid}/reject")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Reject claim")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> Reject(Guid id, RejectClaimRequest request, CancellationToken ct)
+    {
+        await claims.RejectAsync(id, request, ct);
+        return NoContent();
+    }
+
+    /// <summary>Add an internal note (not visible to the claimant). Any staff in the claim's market.</summary>
+    [HttpPost("{id:guid}/notes")]
+    [Tags("Staff")]
+    [Authorize(Policy = AuthorizationPolicies.Staff)]
+    [EndpointSummary("Add note")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> AddNote(Guid id, AddNoteRequest request, CancellationToken ct)
+    {
+        await claims.AddNoteAsync(id, request, ct);
+        return NoContent();
+    }
 }
