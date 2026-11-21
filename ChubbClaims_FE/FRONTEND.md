@@ -223,6 +223,8 @@ P2: Playwright e2e: claimant submits FNOL → officer picks up and approves → 
 
 **Time budget for the frontend: about 1–1.5 h.** If short on time, stop after phase 4 and list phase 5 under "more time".
 
+**As built (phase 6):** README for the web app and the root README updated (run steps, browser tour, screenshots in `docs/screenshots/`, built vs cut). Checked from a fresh clone: `npm ci && npm start` serves the app and proxies to the API; build and tests pass there too. Responsive basics: every screen checked at 390 px with no sideways page scroll (wide tables scroll inside `.table-scroll`; toolbar collapses to icons, labels kept for screen readers).
+
 ---
 
 ## 11. Rules for the AI (Claude Code) and reviewer checklist
