@@ -1,6 +1,7 @@
 using ChubbClaims.Presentation.Extensions;
 using ChubbClaims.Presentation.Middleware;
 using ChubbClaims.Repository;
+using ChubbClaims.Service;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -28,6 +29,8 @@ try
     });
 
     builder.Services.AddPresentation(builder.Configuration);
+    builder.Services.AddIdentityServices(builder.Configuration);
+    builder.Services.AddServices();
     builder.Services.AddRepository(builder.Configuration.GetConnectionString("ClaimsDb")
         ?? throw new InvalidOperationException("Connection string 'ClaimsDb' is not configured."));
 
@@ -42,11 +45,14 @@ try
     app.UseStatusCodePages(); // empty 4xx responses (e.g. 401/404 routing) also become ProblemDetails
 
     app.UseCors(PresentationServiceExtensions.FrontendCorsPolicy);
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     if (app.Environment.IsDevelopment())
     {
-        app.MapOpenApi();                 // /openapi/v1.json (the contract the frontend generates types from)
-        app.MapScalarApiReference(o => o.WithTitle("Claims Platform API")); // /scalar
+        // AllowAnonymous: the fallback policy requires auth everywhere else.
+        app.MapOpenApi().AllowAnonymous(); // /openapi/v1.json (the contract the frontend generates types from)
+        app.MapScalarApiReference(o => o.WithTitle("Claims Platform API")).AllowAnonymous(); // /scalar
     }
 
     app.MapControllers();

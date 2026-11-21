@@ -15,6 +15,12 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
             .AsSplitQuery() // four collections: avoid a cartesian-product join
             .SingleOrDefaultAsync(c => c.Id == id, ct);
 
+    public async Task<IReadOnlyList<Claim>> GetByClaimantAsync(Guid claimantId, CancellationToken ct) =>
+        await db.Claims.AsNoTracking()
+            .Where(c => c.ClaimantId == claimantId) // uses IX_Claims_ClaimantId
+            .OrderByDescending(c => c.ReportedAt)
+            .ToListAsync(ct);
+
     public void Add(Claim claim) => db.Claims.Add(claim);
 
     public async Task<long> NextClaimSequenceAsync(CancellationToken ct)
@@ -47,6 +53,9 @@ public sealed class UserRepository(DataContext db) : IUserRepository
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken ct) =>
         db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == email, ct);
+
+    public async Task<IReadOnlyList<User>> ListAsync(CancellationToken ct) =>
+        await db.Users.AsNoTracking().OrderBy(u => u.Role).ThenBy(u => u.Market).ThenBy(u => u.Email).ToListAsync(ct);
 }
 
 public sealed class UnitOfWork(DataContext db) : IUnitOfWork
