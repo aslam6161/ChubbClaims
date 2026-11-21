@@ -1,0 +1,41 @@
+# AI Working Journal
+
+Running log of how I directed the AI (Claude Code): what I asked, what I accepted, what I challenged, what I overrode. Appended during the work, one entry per prompt that mattered. Not polished on purpose.
+
+---
+
+### 2026-11-21 · Planning · Specs from the brief
+- Asked: turn the Senior/Lead brief into two build specs (BACKEND.md, FRONTEND.md) with priorities, phases and the decisions the panel will probe.
+- Accepted: modular monolith + Kafka for downstream reactions; transactional outbox; idempotent consumers; task-based endpoints; exposure as an event-fed projection; Angular role areas with `canMatch` guards.
+- Challenged: nothing yet at this stage; reviewed in the next entries.
+- Overrode: n/a.
+
+### 2026-11-21 · Planning · Align structure with my own projects
+- Asked: align the backend and frontend folder structure with my existing projects (Bento_BE for .NET, IMSAnuglar for Angular), structure only, no code copied; solution named `ChubbClaims` with `ChubbClaims.Domain`, `ChubbClaims.Repository`, …
+- Accepted: Bento_BE folder names (`Entity/`, `Constants/`, `Settings/`, `DataContext.cs`, `Data/Seed.cs`, `Service/Exceptions`, `Helper/`, single `.Tests` project); IMSAnuglar folder names (`_services`, `_guards`, `_interceptors`, `_models`, `_layout`, `.component.ts/html/css`).
+- Challenged: the AI flagged that IMSAnuglar is Angular 12 with NgModules and `*ngIf`. I agreed to take only folder naming and keep Angular 22 standalone + signals.
+- Overrode: kept the spec over my own project where it matters: no AutoMapper (commercial licence), ProblemDetails instead of my custom `ExceptionMiddleware`, `DependencyInjection.cs` per layer.
+
+### 2026-11-21 · Planning · .sln vs .slnx
+- Asked: why `.slnx`?
+- Accepted (after checking): the AI first recommended `.sln` to match Bento_BE. I checked the installed SDK (10.0.402): `dotnet new sln` produces `.slnx` by default in .NET 10.
+- Overrode: kept `.slnx`, the SDK default; nothing in this project needs the old format.
+
+### 2026-11-21 · Planning · API project name and style
+- Asked: `ChubbClaims.API` with Minimal APIs (AI recommendation) or Bento-style.
+- Overrode: chose `ChubbClaims.Presentation` with Controllers + `BaseApiController`, the structure I use in production and can defend line by line.
+- Challenged: the AI pointed out that `[Route("api/[controller]")]` gives `/api/WorkQueue`, not the spec's `/api/work-queue`; agreed on explicit kebab-case routes per controller.
+
+### 2026-11-21 · Planning · Spec review against the three briefs
+- Asked: re-check both specs against every brief question and deliverable.
+- Accepted fixes:
+  - **Exposure drift bug:** approval resets the reserve to the settlement amount, but the projection ignored `ClaimApproved`, so outstanding exposure would be wrong after every approved claim. `ClaimApproved` now carries old/new reserve and the projector applies the delta; `releasedReserve` is defined precisely.
+  - **Team workload was manager-only**, but the brief says claims staff see team workload and performance. Workload is now open to officers (own market); exposure stays manager-only.
+  - **Seed data contradiction:** claims in six markets but policies only in two, while a claim's market comes from its policy. Added a background claimant per market.
+  - Added the read/write profile table, entity relationships, the journal format, `git init` in Phase 1, and missing config keys.
+- Decided: my role is Senior full stack → Senior/Lead brief → real backend first, partial frontend, no mock backend.
+
+### 2026-11-21 · Planning · Git workflow
+- Asked (my idea): a feature branch per phase, commit there, merge into `main`.
+- Accepted from the AI: several small commits per branch, `--no-ff` merges (not squash) so the panel sees each phase as a block with its steps, merge only when green.
+- Overrode: the AI proposed numbered branch names (`feature/01-scaffold`); I dropped the numbers (`feature/scaffold`), the merge order already shows the sequence.
