@@ -4,6 +4,19 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 
 ---
 
+**If you only read a few entries**, these are the moments where the AI's first answer was wrong or weaker and I changed it:
+
+| Phase | What changed |
+|---|---|
+| 3 | EF Core 11 was "latest" but targets .NET 11; pinned 10.0.x. High-severity advisory in a transitive package, pinned the fix. Domain-generated ids would have made EF UPDATE new child rows. |
+| 4 | A nullable request enum leaked into the OpenAPI contract (every generated TS enum nullable). Someone else's policy/claim returns 404, not 403. |
+| 5 | "Overdue" flagged claims already decided in time. A missing amount silently became 0. Concurrency proven with real races, not asserted. |
+| 6 | Read-modify-write in the projector loses updates with two instances: switched to atomic SQL increments. Publish order needed an identity column. |
+| 7 | Consumers reading the write model vs an additive contract change. Status stamped at save time would be wrong for multi-change saves. A new consumer group would flood users with notifications about history. |
+| 8 | The docs claimed a priority rule the code doesn't implement; checked every claim against the code and a fresh clone. |
+
+---
+
 ### 2026-11-21 · Planning · Specs from the brief
 - Asked: turn the Senior/Lead brief into two build specs (BACKEND.md, FRONTEND.md) with priorities, phases and the decisions the panel will probe.
 - Accepted: modular monolith + Kafka for downstream reactions; transactional outbox; idempotent consumers; task-based endpoints; exposure as an event-fed projection; Angular role areas with `canMatch` guards.
@@ -114,3 +127,10 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Tests: 203 passing (notification rules through the wire format, status-after mapping, workload calculator, notification ownership, hub groups).
 - More time: SignalR backplane for >1 instance; notification preferences/email; paging notifications.
 
+### 2026-11-21 · Phase 8 · README, architecture, decisions, fresh-clone check
+- Asked: final README (run steps, tour, what's built and cut), docs/architecture.md (diagrams), docs/decisions.md, journal tidy (BACKEND.md §12 phase 8).
+- Found while preparing: the P1 `/health` endpoint had never been built. Added it (database only, no new package) as its own commit rather than listing it as cut. Kafka is deliberately not part of readiness: the API works while Kafka is down.
+- Challenged: the AI's architecture draft said high priority is set "when the reserve is at or above the threshold". The code sets it once, at FNOL, from the estimate, strictly above. Fixed the doc and listed recalculation as a follow-up instead. Every other rule in the docs was checked against the code (transition table, who may add notes, reserve states).
+- Diagrams in Mermaid (GitHub renders them, they diff in review, no image files to go stale); the state diagram is drawn from the transition table, not from the spec.
+- Verified the README the way a reviewer would use it: cloned the committed branch into a temp folder, `cp .env.example .env`, `docker compose up --build` under a separate project name (own empty database): healthy after 52 s (warm build cache), seeded, 27 events published; every URL in the README returns 200; all four smoke suites 80/80 on that fresh stack; `dotnet test` on the clean checkout 203/203. Then removed only the test project's containers, volume and image and restarted my stack.
+- Time, from git: first code commit 10:15, backend complete 11:55 (planning before that).
