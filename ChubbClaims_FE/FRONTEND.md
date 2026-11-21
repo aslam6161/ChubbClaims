@@ -39,11 +39,11 @@ Real SSO login, document upload, i18n/translations, mobile-specific layouts beyo
 | Commands | Small feature services using `HttpClient` (POST/PUT) returning results; on success → `resource.reload()` | Commands need explicit error handling (409/422) |
 | Forms | **Typed Reactive Forms** (default). Signal Forms are stable in v22; only use them if you can defend them line by line | Predictability under time pressure |
 | UI kit | **Angular Material** (table, form fields, chips, dialog, snackbar, toolbar) | Fast, accessible, enterprise look |
-| API types | **Generated from the backend OpenAPI** (`openapi-typescript` → `src/app/_api/schema.d.ts`); hand-written thin services | The OpenAPI doc is the contract; types only, so very little generated code to defend |
+| API types | **Generated from the backend OpenAPI** (`openapi-typescript` → `src/app/_api/schema.d.ts`); hand-written thin services | The OpenAPI doc is the contract; types only, so very little generated code to defend. Run via `npx openapi-typescript@7.13.0` (pinned) rather than a devDependency: it peers on TypeScript 5 and Angular 22 uses TypeScript 6 |
 | Realtime | `@microsoft/signalr` (P1) | Browsers can't consume Kafka; backend bridges Kafka → SignalR |
 | Global state | **None (no NgRx).** Session state in an `AuthStore` signal service; everything else is per-feature server state | App state is mostly server state; NgRx would be ceremony for this scope |
 | Tests | **Vitest** (Angular CLI default test runner) + TestBed; Playwright for e2e (P2) | Use what the v22 CLI scaffolds |
-| Dev proxy | `proxy.conf.json` → `/api` and `/hubs` to `http://localhost:5080` | No CORS issues; same URLs as production behind a reverse proxy |
+| Dev proxy | `proxy.conf.json` → `/api`, `/hubs` (WebSockets) and `/health` to `http://127.0.0.1:5080` (IPv4: Node resolves `localhost` to `::1` first) | No CORS issues; same URLs as production behind a reverse proxy |
 
 > Claude Code: before writing code, run `ng version` and check what `ng new` generated (test runner, zoneless, change detection defaults, `@Injectable` vs `@Service`). **Follow the generated defaults consistently; don't mix styles.**
 
@@ -111,7 +111,9 @@ ChubbClaims_FE/
       not-found/                       not-found.component.*
 ```
 
-Naming: one folder per component, `name.component.ts` + `name.component.html` + `name.component.css` (IMSAnuglar convention); feature services sit next to their feature as `*.service.ts`; app-wide services in `_services/`. Tests sit next to the file as `*.spec.ts`.
+Naming (**decided in phase 1: Angular 22 defaults**, overriding the IMSAnuglar `.component` suffix): one folder per component with `name.ts` (`export class Name`) + `name.html` + `name.css`, which is what `ng generate` writes in v22; services use v22's `@Service()` decorator. Feature services sit next to their feature; app-wide services in `_services/`. Tests sit next to the file as `*.spec.ts`. Components are always `ChangeDetectionStrategy.OnPush` (set as the generator default in `angular.json`, so it's explicit, not assumed).
+
+The tree above still shows the original `.component` names; read `login.component.*` as `login.*`.
 
 ### 4.1 Alignment with IMSAnuglar (what was adopted, what was not)
 
@@ -119,7 +121,7 @@ Naming: one folder per component, `name.component.ts` + `name.component.html` + 
 |---|---|---|
 | Shared folders | `_services`, `_guards`, `_interceptors`, `_models`, `_layout`, `_directives` | **Adopted** (plus `_api`, `_helpers`, `_shared`) |
 | Feature folders | `authentication/`, `customer/`, `admin/`, `errors/` | **Adopted** as `authentication/`, `claimant/`, `staff/`, `errors/` |
-| Component files | folder per component, `.component.ts/.html/.css` | **Adopted** |
+| Component files | folder per component, `.component.ts/.html/.css` | Folder per component **adopted**; `.component` suffix **not** (Angular 22 defaults, decided in phase 1) |
 | DTO models | `_models/dtos/*.ts` hand-written | **Not adopted**: types generated from OpenAPI (§9) |
 | Modules | `app.module.ts`, `_modules/shared.module.ts` | **Not adopted**: standalone components, `app.config.ts` |
 | Template syntax | `*ngIf` / `*ngFor` | **Not adopted**: `@if` / `@for` / `@switch` |
