@@ -70,3 +70,13 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Verified against Docker SQL Server: 9 users, 13 policies, 13 claims across 6 markets and all statuses (3 overdue, 1 awaiting info); 27 outbox events; audit rows add up (26 status, 16 reserve); one envelope checked field by field against §6. Containerised API starts, logs JSON, skips seeding on an existing DB.
 - Ops: C: drive hit 0 GB during package restore; cleared npm, NuGet and temp caches (with approval) to continue.
 
+### 2026-11-21 · Phase 4 · Dev auth and claimant endpoints
+- Asked: JWT dev login, role policies, claimant endpoints (policies/mine, FNOL, claims/mine, claim detail, answer information request) per BACKEND.md §8.
+- Accepted: fallback policy "authenticated" so a new endpoint is never accidentally public; coarse role policies on controllers (ClaimantOnly/Staff/ManagerOnly) + resource checks in the service (owner / same market) + who-may-act in the aggregate; `MapInboundClaims = false` so `sub`/`role`/`market` arrive as issued; claimant detail hides reserve and notes (staff-only fields null).
+- Challenged: someone else's policy and someone else's claim return 404 with the same message as a missing one, so ids cannot be probed. Covered by service tests and the smoke script.
+- Challenged: the AI made the request enum `ClaimType?` to get `[Required]` working; that made the shared OpenAPI `ClaimType` schema nullable, so every generated frontend type would have allowed null. Switched to non-nullable enums with `[EnumDataType]` (missing value -> 400 naming the field). Verified in /openapi/v1.json.
+- Accepted with a note: a claim-number sequence value is consumed even if FNOL validation then fails, so numbers can have gaps. Normal for sequences; uniqueness matters, not continuity.
+- Added (not in spec): `GET /api/auth/dev-users` (Development only) so the Angular login page can list seeded users without hard-coding them. Spec updated.
+- Verified end to end against SQL Server: `scripts/smoke/claimant_flow.py` runs 22 checks (401 without token; FNOL 201 + Location; 422 expired policy / future date / missing vehicle details; 400 missing fields; 404 other claimant's claim and policy; 204 answer then 409 on a second answer; 403 officer on claimant endpoints; 404 for an SG officer on an MY claim). 22/22. Correlation id from the request header reached the outbox row and every log line.
+- Tests: 166 passing (service tests with NSubstitute fakes; JWT issue -> validate -> CurrentUser round trip; wrong signing key rejected).
+

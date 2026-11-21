@@ -122,7 +122,7 @@ ChubbClaims/                                   (repo root)
                                                (claimant + officer actions), WorkQueueController, TeamController,
                                                ReportsController, NotificationsController (P1)
       Hubs/                                    ClaimsHub (SignalR, P1)
-      Auth/                                    DevTokenIssuer, CurrentUser, AuthorizationPolicies
+      Auth/                                    JwtSettings, AppClaimTypes, DevTokenIssuer, CurrentUser, AuthorizationPolicies
       Middleware/                              CorrelationIdMiddleware, ExceptionToProblemDetailsHandler
       Extensions/                              BearerSecuritySchemeTransformer (Scalar "Authorize"),
                                                ClaimsPrincipalExtensions, CorsExtension
@@ -365,13 +365,14 @@ Base path `/api`. All errors are **ProblemDetails**. Auth: `Authorization: Beare
 
 ### Auth (dev only)
 - `POST /api/auth/dev-login` `{ email }` returns `{ accessToken, user }`. Issues a JWT for a seeded user. **Development environment only; clearly labelled as a shortcut.**
+- `GET /api/auth/dev-users`: the seeded users for the login picker. **Development only** (404 otherwise).
 - `GET /api/me`
 
 ### Claimant (`Claimant` role)
 - `GET  /api/policies/mine`: the caller's policies (to pick on FNOL)
 - `POST /api/claims`: submit FNOL. Returns **201** + `{ id, claimNumber, status }`
 - `GET  /api/claims/mine`
-- `GET  /api/claims/{id}`: owner or staff. **Return 404 (not 403) if a claimant asks for someone else's claim**
+- `GET  /api/claims/{id}`: owner or staff in the claim's market. **404 (not 403) for anyone else**, including staff from another market. Staff additionally get `reserveAmount`, `outstandingReserve`, `priority`, `assignedOfficerId`, `reserveHistory`, `notes` (null for claimants)
 - `POST /api/claims/{id}/information-requests/{requestId}/response` `{ response }`
 - `GET  /api/notifications/mine` (P1)
 
@@ -397,6 +398,8 @@ Task-based endpoints (not `PATCH status`) because each action has its own rules,
 - Clients **re-fetch over REST** when notified. Push is a hint, REST is the source of truth.
 
 ### Authorization
+- Every endpoint requires an authenticated user (fallback policy) unless marked `[AllowAnonymous]` (dev login, OpenAPI, Scalar).
+- **400 vs 422:** request shape errors (missing field, unknown enum, too long) are 400 `ValidationProblemDetails` from `[ApiController]`; business-rule violations are 422 from the domain.
 - Policies: `ClaimantOnly`, `Staff` (Officer or Manager), `ManagerOnly`.
 - Resource checks in the application layer: claimant owns the claim; officer is in the claim's market; only the **assigned** officer can act on a claim.
 - Angular route guards are UX only. **The API enforces everything.**
