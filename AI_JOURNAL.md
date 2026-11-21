@@ -57,3 +57,16 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Overrode: dropped the `Money` value object from the spec: one currency per claim (from the policy) makes it redundant. Dropped Domain `Settings/` for now: config POCOs arrive with the phases that bind them.
 - Added: an "exposure consistency" test: the sum of event deltas a claim emits must equal its outstanding reserve (zero once closed). It locks in the fix for the drift bug found in spec review.
 
+
+### 2026-11-21 · Phase 3 · Persistence, seed data, transactional outbox
+- Asked: EF Core 10 + SQL Server: DbContext, configurations, migration, seed through the domain, repositories, outbox interceptor (BACKEND.md §12 phase 3).
+- Accepted: owned types for Motor/Property details (columns on Claims, not JSON: two small fixed shapes); RowVersion as an EF shadow property (concurrency stays out of the domain); enums stored as strings; decimal(18,2) by convention; claim numbers from a SQL sequence; outbox rows added in a SaveChanges interceptor so claim + events commit in one transaction; events serialised into the §6 envelope at write time.
+- Challenged: EF 11 was the "latest" package but targets .NET 11 only; pinned EF Core 10.0.13 to stay on the .NET 10 LTS runtime the spec chose.
+- Challenged: NuGet flagged a high-severity advisory (GHSA-846f-f764-76mx) in System.Security.Cryptography.Pkcs 9.0.11, pulled in by Microsoft.Data.SqlClient. Pinned 10.0.15 directly with a comment; `dotnet list package --vulnerable` now clean.
+- Challenged: Domain-generated Guid keys + EF default "generated on add" would make EF UPDATE (not INSERT) new child rows added to a tracked claim. Set ValueGeneratedNever for all entity ids.
+- Bug found by running it: `SELECT NEXT VALUE FOR` failed (SQL error 11719) because `.SingleAsync()` made EF wrap the raw SQL in a subquery. Fixed with `ToListAsync()` + `Single()`, comment explains why.
+- Overrode: per-market reserve config instead of one global default: amounts are in local currency (5,000 MYR vs 5,000 IDR). Config validated at startup so a missing market fails fast.
+- Overrode: OutboxMessage lives in Repository/Outbox, not Domain/ReadModels as the spec said; it is plumbing, not domain.
+- Verified against Docker SQL Server: 9 users, 13 policies, 13 claims across 6 markets and all statuses (3 overdue, 1 awaiting info); 27 outbox events; audit rows add up (26 status, 16 reserve); one envelope checked field by field against §6. Containerised API starts, logs JSON, skips seeding on an existing DB.
+- Ops: C: drive hit 0 GB during package restore; cleared npm, NuGet and temp caches (with approval) to continue.
+

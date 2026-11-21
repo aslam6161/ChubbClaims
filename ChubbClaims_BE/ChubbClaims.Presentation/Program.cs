@@ -1,5 +1,6 @@
 using ChubbClaims.Presentation.Extensions;
 using ChubbClaims.Presentation.Middleware;
+using ChubbClaims.Repository;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -27,8 +28,13 @@ try
     });
 
     builder.Services.AddPresentation(builder.Configuration);
+    builder.Services.AddRepository(builder.Configuration.GetConnectionString("ClaimsDb")
+        ?? throw new InvalidOperationException("Connection string 'ClaimsDb' is not configured."));
 
     var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+        await app.Services.InitialiseDatabaseAsync(seed: true); // migrate + seed demo data
 
     app.UseMiddleware<CorrelationIdMiddleware>(); // first, so every later log line has the id
     app.UseSerilogRequestLogging();

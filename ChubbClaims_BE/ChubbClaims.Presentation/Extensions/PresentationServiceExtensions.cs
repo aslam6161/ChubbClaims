@@ -1,4 +1,8 @@
+using ChubbClaims.Domain.Enums;
+using ChubbClaims.Domain.Settings;
 using ChubbClaims.Presentation.Middleware;
+using ChubbClaims.Repository.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace ChubbClaims.Presentation.Extensions;
 
@@ -6,10 +10,19 @@ public static class PresentationServiceExtensions
 {
     public const string FrontendCorsPolicy = "Frontend";
 
-    /// <summary>HTTP-layer services: controllers, ProblemDetails, OpenAPI, CORS.</summary>
+    /// <summary>HTTP-layer services: controllers, ProblemDetails, OpenAPI, CORS, plus host-level services (clock, correlation, settings).</summary>
     public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICorrelationContext, HttpCorrelationContext>();
+        services.AddSingleton(TimeProvider.System);
+
+        services.AddOptions<ClaimRulesSettings>()
+            .Bind(configuration.GetSection(ClaimRulesSettings.SectionName))
+            .Validate(s => Enum.GetValues<Market>().All(s.Markets.ContainsKey), "ClaimRules:Markets must configure every market")
+            .ValidateOnStart();
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<ClaimRulesSettings>>().Value);
 
         services.AddProblemDetails(options =>
         {

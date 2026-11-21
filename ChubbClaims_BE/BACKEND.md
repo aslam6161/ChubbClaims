@@ -45,7 +45,7 @@ Real identity provider, document/photo uploads, payments integration, fraud scor
 
 | Concern | Choice | Why / notes |
 |---|---|---|
-| Runtime | **.NET 10 (LTS)**, C# 14 | Current LTS |
+| Runtime | **.NET 10 (LTS)**, C# 14 | Current LTS. EF Core pinned to **10.0.x** (EF Core 11 targets .NET 11 only) |
 | API style | **Controllers** (`[ApiController]`, one controller per feature, deriving from `BaseApiController`) in `ChubbClaims.Presentation`. Use **explicit kebab-case route attributes** so URLs match §8 exactly (e.g. `[Route("api/work-queue")]`, `[HttpPost("{id:guid}/pick-up")]`) | Matches my existing project structure (Bento_BE); attribute routing + `[Authorize(Policy=…)]` per action; built-in OpenAPI works with controllers |
 | API docs | **Microsoft.AspNetCore.OpenApi** (`AddOpenApi`/`MapOpenApi`) + **Scalar.AspNetCore** (`MapScalarApiReference`) | Swashbuckle is no longer in the templates; built-in generator emits OpenAPI 3.1; Scalar reads `/openapi/v1.json` |
 | Logging | **Serilog** (`Serilog.AspNetCore`), console sink, request logging, correlation id enrichment | Structured logs; correlation id flows into Kafka headers |
@@ -136,7 +136,8 @@ ChubbClaims/                                   (repo root)
       Projections/                             ExposureProjection (pure delta logic, unit tested)
       DependencyInjection.cs                   AddServices()
     ChubbClaims.Repository/                    persistence (EF Core 10 + SQL Server)
-      DataContext.cs                           ChubbClaimsDbContext
+      DataContext.cs                           DataContext (EF Core DbContext, claim number sequence, conventions)
+      Outbox/                                  OutboxMessage, OutboxMessageFactory (builds the §6 event envelope)
       Configurations/                          IEntityTypeConfiguration<T> per entity
       Data/                                    Seed.cs (DevDataSeeder, seeds through the domain model)
       Interfaces/                              IClaimRepository, IPolicyRepository, IUserRepository,
@@ -152,7 +153,8 @@ ChubbClaims/                                   (repo root)
       Enums/                                   ClaimStatus, ClaimType, ClaimAction, UserRole, DamageType, Priority, Market
       Constants/                               Markets (currency + time zone per market)
       Events/                                  IDomainEvent + ClaimSubmitted, ClaimPickedUp, ReserveAdjusted, …
-      ReadModels/                              ExposureByMarket, Notification, ProcessedEvent, OutboxMessage
+      Settings/                                ClaimRulesSettings (bound from ClaimRules; per-market reserves and thresholds)
+      ReadModels/                              ExposureByMarket, Notification, ProcessedEvent (Phase 6/7)
       Exceptions/                              DomainException, InvalidClaimTransitionException (409), DomainValidationException (422),
                                                ClaimAccessDeniedException (403)
       Rules/                                   ClaimTransitions (allowed transition table), ClaimSubmissionRules
@@ -191,7 +193,8 @@ ChubbClaims.Tests ─▶ Domain, Service (and API for P2 integration tests)
 | Solution file | `Mustard.sln` | **Not adopted:** `ChubbClaims.slnx` (the .NET 10 SDK default; same projects, XML format, fewer merge conflicts) |
 | Project names | `.Domain`, `.Repository`, `.Service`, `.Tests` | **Adopted** |
 | Domain folders | `Entity/` (singular), `Enums/`, `Constants/`, `Settings/` | **Adopted**; spec-only folders added (`ValueObjects/`, `Events/`, `Rules/`, `Exceptions/`, `ReadModels/`) |
-| DbContext | `DataContext.cs` at project root, `Data/Seed.cs` | **Adopted** |
+| DbContext | `DataContext.cs` at project root, `Data/Seed.cs` | **Adopted** (class `DataContext`, seeder `DevDataSeeder` in `Data/Seed.cs`) |
+| Outbox entity | (none) | `OutboxMessage` in `Repository/Outbox`, not `Domain/ReadModels`: it is a persistence mechanism, not a business concept; the envelope is built where the row is written |
 | Service folders | `DTOs/`, `Interfaces/`, `Services/`, `Exceptions/`, `Helper/` | **Adopted** (mappings live in `Helper/`) |
 | API project | `Mustard.Presentation` with `Controllers/` + `BaseApiController` | **Adopted:** `ChubbClaims.Presentation` |
 | API support folders | `Middleware/`, `Logging/`, `Extensions/` | **Adopted** `Middleware/` and `Extensions/` (CorrelationIdMiddleware, BearerSecuritySchemeTransformer). No `Logging/` enricher: the middleware pushes CorrelationId into Serilog's `LogContext` |
@@ -261,7 +264,7 @@ Submitted ──PickUp──▶ UnderReview ──RequestInformation──▶ Aw
 - Rule violations (e.g. negative reserve) throw `DomainValidationException` and map to **422**.
 - Each transition writes a `ClaimStatusChange` row and raises a **domain event**.
 
-**Initial ("formula") reserve:** at FNOL, `ReserveAmount = EstimatedLossAmount` if provided, else a configured default per market + claim type (`appsettings: Reserves:Defaults`). This makes exposure meaningful from the moment a claim is reported.
+**Initial ("formula") reserve:** at FNOL, `ReserveAmount = EstimatedLossAmount` if provided, else a configured default per market + claim type (`ClaimRules:Markets:<market>:DefaultMotorReserve / DefaultPropertyReserve`, in the market's currency). This makes exposure meaningful from the moment a claim is reported.
 
 ### 5.3 FNOL validation (business logic)
 
@@ -406,7 +409,7 @@ Task-based endpoints (not `PATCH status`) because each action has its own rules,
 - **ProblemDetails:** `AddProblemDetails()` + exception handler mapping NotFound→404, InvalidTransition→409, Concurrency→409, DomainValidation→422, Forbidden→403.
 - **Scalar:** `MapOpenApi()` + `MapScalarApiReference()` (Development). Add a document transformer for the Bearer security scheme so you can "Authorize" in Scalar. Title "Claims Platform API", version v1.
 - **Time:** inject `IClock` (`TimeProvider` in .NET 10). No `DateTime.Now` in the domain. Store UTC.
-- **Config:** `Reserves:Defaults`, `Sla:DaysToDecision`, `Priority:HighLossThresholds` (per market), `Fnol:MaxIncidentAgeDays`, `Kafka:BootstrapServers`, `Kafka:Topic`, `Jwt:*`, connection string; overridable via env vars in compose.
+- **Config:** `ClaimRules` (`SlaDaysToDecision`, `MaxIncidentAgeDays`, and per market `DefaultMotorReserve`, `DefaultPropertyReserve`, `HighPriorityThreshold`; validated on start so every market is configured), `Kafka:BootstrapServers`, `Kafka:Topic`, `Jwt:*`, connection string; overridable via env vars in compose.
 - **CORS:** allow `http://localhost:4200` (Angular dev server).
 - **Health (P1):** `/health` with DB check.
 
