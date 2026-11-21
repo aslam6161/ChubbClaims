@@ -1,6 +1,7 @@
 using ChubbClaims.Messaging;
 using ChubbClaims.Messaging.Settings;
 using ChubbClaims.Presentation.Extensions;
+using ChubbClaims.Presentation.Hubs;
 using ChubbClaims.Presentation.Middleware;
 using ChubbClaims.Repository;
 using ChubbClaims.Service;
@@ -32,6 +33,7 @@ try
 
     builder.Services.AddPresentation(builder.Configuration);
     builder.Services.AddIdentityServices(builder.Configuration);
+    builder.Services.AddRealtime();
     builder.Services.AddServices();
     builder.Services.AddRepository(builder.Configuration.GetConnectionString("ClaimsDb")
         ?? throw new InvalidOperationException("Connection string 'ClaimsDb' is not configured."));
@@ -59,6 +61,7 @@ try
     }
 
     app.MapControllers();
+    app.MapHub<ClaimsHub>(ClaimsHub.Path); // [Authorize] on the hub; JWT via access_token for WebSockets
 
     app.Run();
 }

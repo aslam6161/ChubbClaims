@@ -1,8 +1,10 @@
 using ChubbClaims.Domain.Enums;
 using ChubbClaims.Service.DTOs.Auth;
 using ChubbClaims.Service.DTOs.Claims;
+using ChubbClaims.Service.DTOs.Notifications;
 using ChubbClaims.Service.DTOs.Policies;
 using ChubbClaims.Service.DTOs.Reports;
+using ChubbClaims.Service.DTOs.Team;
 using ChubbClaims.Service.DTOs.WorkQueue;
 
 namespace ChubbClaims.Service.Interfaces;
@@ -52,6 +54,23 @@ public interface IClaimService
 public interface IExposureService
 {
     Task<ExposureReportResponse> GetAsync(CancellationToken ct);
+}
+
+public interface ITeamService
+{
+    /// <summary>Per-officer workload and recent decisions in the caller's market.</summary>
+    Task<TeamWorkloadResponse> GetWorkloadAsync(CancellationToken ct);
+}
+
+public interface INotificationService
+{
+    /// <summary>The caller's latest notifications and unread count.</summary>
+    Task<NotificationListResponse> GetMineAsync(CancellationToken ct);
+
+    /// <summary>NotFound for a notification that is not the caller's.</summary>
+    Task MarkReadAsync(Guid notificationId, CancellationToken ct);
+
+    Task MarkAllReadAsync(CancellationToken ct);
 }
 
 public interface IWorkQueueService

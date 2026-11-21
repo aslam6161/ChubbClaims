@@ -50,6 +50,17 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<WorkloadClaimRow>> GetWorkloadRowsAsync(Market market, DateTimeOffset decidedSince, CancellationToken ct) =>
+        await db.Claims.AsNoTracking()
+            .Where(c => c.Market == market && c.AssignedOfficerId != null)
+            .Where(c => (c.Status != ClaimStatus.Settled && c.Status != ClaimStatus.Rejected) || c.DecisionAt >= decidedSince)
+            .Select(c => new WorkloadClaimRow(c.AssignedOfficerId!.Value, c.Status, c.ReportedAt, c.SlaDueAt, c.DecisionAt))
+            .ToListAsync(ct);
+
+    public Task<int> CountUnassignedOpenAsync(Market market, CancellationToken ct) =>
+        db.Claims.CountAsync(c => c.Market == market && c.AssignedOfficerId == null
+                                  && c.Status != ClaimStatus.Settled && c.Status != ClaimStatus.Rejected, ct);
+
     public void Add(Claim claim) => db.Claims.Add(claim);
 
     public async Task<long> NextClaimSequenceAsync(CancellationToken ct)
@@ -82,6 +93,12 @@ public sealed class UserRepository(DataContext db) : IUserRepository
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken ct) =>
         db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == email, ct);
+
+    public async Task<IReadOnlyList<User>> GetStaffAsync(Market market, CancellationToken ct) =>
+        await db.Users.AsNoTracking()
+            .Where(u => u.Market == market && (u.Role == UserRole.ClaimsOfficer || u.Role == UserRole.ClaimsManager))
+            .OrderBy(u => u.Name)
+            .ToListAsync(ct);
 
     public async Task<IReadOnlyList<User>> ListAsync(CancellationToken ct) =>
         await db.Users.AsNoTracking().OrderBy(u => u.Role).ThenBy(u => u.Market).ThenBy(u => u.Email).ToListAsync(ct);

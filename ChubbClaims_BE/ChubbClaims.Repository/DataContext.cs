@@ -16,6 +16,7 @@ public sealed class DataContext(DbContextOptions<DataContext> options) : DbConte
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<ExposureByMarket> ExposureByMarket => Set<ExposureByMarket>();
     public DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

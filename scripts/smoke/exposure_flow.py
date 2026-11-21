@@ -59,7 +59,19 @@ def check(name, ok, detail=""):
 s, _ = call("GET", "/api/reports/exposure", login("officer.my@demo.local"))
 check("officer cannot read exposure -> 403", s == 403, s)
 
-before, report = exposure_rows()
+def settled_rows():
+    """Exposure is eventually consistent: events from earlier requests (e.g. another smoke script that
+    just ran) may still be in flight. Take the baseline only once two reads 1.5 s apart agree."""
+    previous, _ = exposure_rows()
+    while True:
+        time.sleep(1.5)
+        current, report = exposure_rows()
+        if current == previous:
+            return current, report
+        previous = current
+
+
+before, report = settled_rows()
 check("totals are per currency (6 currencies, no cross-currency sum)",
       sorted(t["currency"] for t in report["totalsByCurrency"]) == ["AUD", "HKD", "IDR", "MYR", "SGD", "THB"],
       [t["currency"] for t in report["totalsByCurrency"]])

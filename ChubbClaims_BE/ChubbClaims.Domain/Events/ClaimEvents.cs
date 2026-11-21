@@ -18,7 +18,8 @@ public sealed record ReserveAdjusted(Guid ClaimId, DateTimeOffset OccurredAt, de
 public sealed record InformationRequested(Guid ClaimId, DateTimeOffset OccurredAt, Guid RequestId, string Question)
     : ClaimEvent(ClaimId, OccurredAt);
 
-public sealed record InformationProvided(Guid ClaimId, DateTimeOffset OccurredAt, Guid RequestId)
+/// <summary>AssignedOfficerId: who asked, so they can be told the answer arrived.</summary>
+public sealed record InformationProvided(Guid ClaimId, DateTimeOffset OccurredAt, Guid RequestId, Guid? AssignedOfficerId)
     : ClaimEvent(ClaimId, OccurredAt);
 
 /// <summary>Approval resets the reserve to the settlement amount; old/new let the exposure projection apply the delta.</summary>

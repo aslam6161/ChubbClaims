@@ -11,7 +11,8 @@ public static class DependencyInjection
 {
     /// <summary>
     /// Kafka: outbox publisher and consumers as hosted services in this process. This project is the
-    /// seam where the projector or a notifier could be lifted into its own deployable later.
+    /// seam where the projector or the notifier could be lifted into its own deployable later.
+    /// The host must register <see cref="Realtime.IRealtimePush"/> (SignalR in the API).
     /// </summary>
     public static IServiceCollection AddMessaging(this IServiceCollection services, KafkaSettings settings)
     {
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<OutboxPublisher>();
         services.AddHostedService<OutboxPublisherService>();
         services.AddHostedService<ExposureProjectorConsumer>();
+        services.AddHostedService<RealtimeNotifierConsumer>(); // needs an IRealtimePush from the host
         return services;
     }
 }

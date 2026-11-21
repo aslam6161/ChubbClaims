@@ -31,6 +31,7 @@ public class OutboxMessageFactoryTests
         root.GetProperty("eventVersion").GetInt32().ShouldBe(1);
         root.GetProperty("claimId").GetGuid().ShouldBe(claim.Id);
         root.GetProperty("claimNumber").GetString().ShouldBe("CLM-MY-2026-000001");
+        root.GetProperty("claimantId").GetGuid().ShouldBe(Claimant.UserId);
         root.GetProperty("market").GetString().ShouldBe("MY");
         root.GetProperty("currency").GetString().ShouldBe("MYR");
         root.GetProperty("claimType").GetString().ShouldBe("Motor");

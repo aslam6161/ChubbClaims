@@ -67,3 +67,19 @@ public sealed class ProcessedEventConfiguration : IEntityTypeConfiguration<Proce
         b.Property(e => e.ConsumerGroup).HasMaxLength(100);
     }
 }
+
+public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notification>
+{
+    public void Configure(EntityTypeBuilder<Notification> b)
+    {
+        b.ToTable("Notifications");
+        b.HasKey(n => n.Id);
+        b.Property(n => n.Id).ValueGeneratedNever();
+        b.Property(n => n.ClaimNumber).HasMaxLength(32).IsRequired();
+        b.Property(n => n.Message).HasMaxLength(Notification.MaxMessageLength).IsRequired();
+        b.Ignore(n => n.IsRead);
+
+        // "My latest notifications" and "my unread count".
+        b.HasIndex(n => new { n.UserId, n.CreatedAt });
+    }
+}
