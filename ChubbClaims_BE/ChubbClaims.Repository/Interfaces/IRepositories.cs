@@ -7,6 +7,9 @@ public interface IClaimRepository
     /// <summary>The full aggregate (with children), tracked for changes. Null if it does not exist.</summary>
     Task<Claim?> GetAsync(Guid id, CancellationToken ct);
 
+    /// <summary>The claimant's claims, newest first, without children (read-only list).</summary>
+    Task<IReadOnlyList<Claim>> GetByClaimantAsync(Guid claimantId, CancellationToken ct);
+
     void Add(Claim claim);
 
     /// <summary>Next value of the claim number sequence (unique across concurrent submissions).</summary>
@@ -23,6 +26,7 @@ public interface IUserRepository
 {
     Task<User?> GetAsync(Guid id, CancellationToken ct);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct);
+    Task<IReadOnlyList<User>> ListAsync(CancellationToken ct);
 }
 
 /// <summary>Commits all changes of the current request in one transaction (claim + children + outbox rows).</summary>
