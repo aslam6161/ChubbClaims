@@ -3,6 +3,8 @@
 End-to-end checks against a running API at `http://localhost:5080` (local `dotnet run` or `docker compose up`).
 They use the real database, Kafka and SignalR; nothing is mocked.
 
+Prerequisites: **Python 3** (standard library only) for the `.py` scripts, and **Node** for `realtime_flow.mjs`.
+
 | Script | Checks | Needs |
 |---|---|---|
 | `officer_flow.py` | Work queue, every officer action, 10 simultaneous pick-up races (one 204, one 409) | **fresh seed** |
