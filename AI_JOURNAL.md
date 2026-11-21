@@ -80,3 +80,12 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Verified end to end against SQL Server: `scripts/smoke/claimant_flow.py` runs 22 checks (401 without token; FNOL 201 + Location; 422 expired policy / future date / missing vehicle details; 400 missing fields; 404 other claimant's claim and policy; 204 answer then 409 on a second answer; 403 officer on claimant endpoints; 404 for an SG officer on an MY claim). 22/22. Correlation id from the request header reached the outbox row and every log line.
 - Tests: 166 passing (service tests with NSubstitute fakes; JWT issue -> validate -> CurrentUser round trip; wrong signing key rejected).
 
+### 2026-11-21 · Phase 5 · Officer work queue and claim actions
+- Asked: work queue (unassigned / mine, status filter, SLA or reported sort) and officer actions (pick up, reserve, request info, approve, settle, reject, notes) with 409 on concurrent pick-up.
+- Accepted: work queue as a SQL projection on indexed columns (no read model: per-officer filtered read); one `ActAsync` shape for every officer action (load visible claim -> domain method -> save) so no action can skip the visibility check; all actions 204 and the UI reloads.
+- Challenged: "overdue" was first defined as `SlaDueAt < now`. That would flag approved claims waiting for payment as overdue although the decision was made in time. Changed to "SLA passed without a decision" and put it, with "waiting on", in `Domain/Rules/ClaimProgress` (business rules, unit tested).
+- Challenged: request amounts as `decimal` would turn a missing amount into 0, and a 0 reserve is valid. Made them `decimal?` + `[Required]` (missing -> 400), while negative/zero limits stay domain rules (422).
+- Proved concurrency, not just claimed it: `scripts/smoke/officer_flow.py` fires two pick-ups on the same new claim at the same instant (thread barrier), 10 times. Every time exactly one 204 and one 409, and all 10 conflicts were caught by the RowVersion check in SQL Server (both had loaded the claim before either saved), not by the status check.
+- Verified: officer smoke 31/31 (queue scoping per market, SLA order with overdue first, waiting-on, 403/404/409/422/400 cases, full lifecycle with history and notes, claimant sees decision but not notes); claimant smoke still 22/22; 181 unit tests.
+- More time: paging for the queue, SLA pause while waiting on the claimant, claimant name in queue rows (needs a users join or a denormalised column).
+
