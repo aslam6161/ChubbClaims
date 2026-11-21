@@ -1,0 +1,346 @@
+<a mat-button routerLink="/staff/queue" class="back"><mat-icon>arrow_back</mat-icon> Work queue</a>
+
+<app-page-state
+  [loading]="claim.isLoading()"
+  [error]="claim.error()"
+  [empty]="!detail()"
+  (retry)="claim.reload()"
+>
+  @if (detail(); as c) {
+    <header class="page-header">
+      <div>
+        <h1>
+          {{ c.claimNumber }}
+          @if (c.priority === 'High') {
+            <span class="high">High priority</span>
+          }
+        </h1>
+        <p class="sub">
+          {{ c.type }} · {{ c.market }} · policy {{ c.policyNumber }} · reported
+          {{ c.reportedAt | date: 'd MMM y, HH:mm' }}
+        </p>
+        <p class="assignee">
+          <mat-icon>person</mat-icon>
+          @if (assignedToMe()) {
+            Assigned to you
+          } @else if (c.assignedOfficerId) {
+            Assigned to another officer
+          } @else {
+            Unassigned
+          }
+        </p>
+      </div>
+      <app-status-badge [status]="c.status" />
+    </header>
+
+    @if (busy()) {
+      <mat-progress-bar mode="indeterminate" aria-label="Working" />
+    }
+
+    <div class="layout">
+      <!-- Left: what the claim is -->
+      <div class="main">
+        <div class="grid">
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>Money</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <dl>
+                <dt>Reserve</dt>
+                <dd class="strong">{{ c.reserveAmount | money: c.currency }}</dd>
+                <dt>Outstanding</dt>
+                <dd>{{ c.outstandingReserve | money: c.currency }}</dd>
+                <dt>Claimant estimate</dt>
+                <dd>{{ c.estimatedLossAmount | money: c.currency }}</dd>
+                @if (c.settlementAmount !== null) {
+                  <dt>Settlement</dt>
+                  <dd class="strong">{{ c.settlementAmount | money: c.currency }}</dd>
+                  <dt>Paid</dt>
+                  <dd>{{ c.paidAmount | money: c.currency }}</dd>
+                }
+              </dl>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>Decision deadline</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <p class="sla" [class.sla--overdue]="isOverdue()">
+                {{ c.slaDueAt | date: 'd MMM y' }}
+                @if (isOverdue()) {
+                  <span class="chip">Overdue</span>
+                }
+              </p>
+              @if (c.decisionAt) {
+                <p class="muted">Decided {{ c.decisionAt | date: 'd MMM y' }}</p>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Incident</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <dl>
+              <dt>Date</dt>
+              <dd>{{ c.incidentDate | date: 'd MMM y' }}</dd>
+              <dt>Location</dt>
+              <dd>{{ c.incidentLocation }}</dd>
+              <dt>Description</dt>
+              <dd>{{ c.description }}</dd>
+              @if (c.motor; as m) {
+                <dt>Vehicle</dt>
+                <dd>
+                  {{ m.vehicleRegistration }} · third party:
+                  {{ m.thirdPartyInvolved ? 'yes' : 'no' }}
+                  @if (m.policeReportNumber) {
+                    · police report {{ m.policeReportNumber }}
+                  }
+                </dd>
+              }
+              @if (c.property; as p) {
+                <dt>Property</dt>
+                <dd>{{ p.propertyAddress }} · {{ p.damageType }}</dd>
+              }
+            </dl>
+          </mat-card-content>
+        </mat-card>
+
+        @if (c.informationRequests.length > 0) {
+          <section>
+            <h2>Information requests</h2>
+            @for (r of c.informationRequests; track r.id) {
+              <div class="qa" [class.qa--open]="r.isOpen">
+                <p>
+                  <strong>Q</strong> {{ r.question }}
+                  <span class="muted">{{ r.requestedAt | date: 'd MMM' }}</span>
+                </p>
+                @if (r.isOpen) {
+                  <p class="muted">Waiting for the claimant to answer.</p>
+                } @else {
+                  <p>
+                    <strong>A</strong> {{ r.response }}
+                    <span class="muted">{{ r.respondedAt | date: 'd MMM' }}</span>
+                  </p>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <section>
+          <h2>Internal notes</h2>
+          <p class="muted small">Not visible to the claimant.</p>
+          @for (n of c.notes ?? []; track n.id) {
+            <p class="note">
+              {{ n.text }} <span class="muted">{{ n.createdAt | date: 'd MMM, HH:mm' }}</span>
+            </p>
+          } @empty {
+            <p class="muted">No notes yet.</p>
+          }
+          @if (can('addNote')) {
+            <form
+              [formGroup]="noteForm"
+              #noteDirective="ngForm"
+              (ngSubmit)="addNote(c, noteDirective)"
+              class="inline"
+            >
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Add a note</mat-label>
+                <input matInput formControlName="text" maxlength="4000" />
+              </mat-form-field>
+              <button mat-stroked-button type="submit" [disabled]="busy()">Add</button>
+            </form>
+          }
+        </section>
+
+        <section>
+          <h2>History</h2>
+          <ol class="timeline">
+            @for (step of timeline(); track step.at) {
+              <li>
+                <span class="when">{{ step.at | date: 'd MMM y, HH:mm' }}</span>
+                <span>
+                  <strong>{{ label(step.to) }}</strong> · {{ who(step.actorRole) }}
+                  @if (step.reason) {
+                    <span class="reason">{{ step.reason }}</span>
+                  }
+                </span>
+              </li>
+            }
+          </ol>
+          @if (reserveHistory().length > 0) {
+            <h3>Reserve changes</h3>
+            <ol class="timeline">
+              @for (r of reserveHistory(); track r.at) {
+                <li>
+                  <span class="when">{{ r.at | date: 'd MMM y, HH:mm' }}</span>
+                  <span>
+                    {{ r.oldAmount | money: c.currency }} →
+                    <strong>{{ r.newAmount | money: c.currency }}</strong>
+                    <span class="reason">{{ r.reason }}</span>
+                  </span>
+                </li>
+              }
+            </ol>
+          }
+        </section>
+      </div>
+
+      <!-- Right: what I can do now -->
+      <aside class="actions">
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Actions</mat-card-title></mat-card-header>
+          <mat-card-content>
+            @if (actionError(); as err) {
+              <p class="error" role="alert">{{ err.userMessage }}</p>
+            }
+
+            @if (can('pickUp')) {
+              <button
+                mat-flat-button
+                type="button"
+                class="wide"
+                [disabled]="busy()"
+                (click)="pickUp(c)"
+              >
+                <mat-icon>assignment_ind</mat-icon> Pick up this claim
+              </button>
+            }
+
+            @if (can('adjustReserve')) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="wide"
+                (click)="toggle('adjustReserve', c)"
+              >
+                <mat-icon>savings</mat-icon> Adjust reserve
+              </button>
+              @if (open() === 'adjustReserve') {
+                <form [formGroup]="reserveForm" (ngSubmit)="adjustReserve(c)" class="panel">
+                  <mat-form-field appearance="outline">
+                    <mat-label>New reserve</mat-label>
+                    <span matTextPrefix>{{ c.currency }}&nbsp;</span>
+                    <input matInput type="number" min="0" step="0.01" formControlName="amount" />
+                    @if (reserveForm.controls.amount.hasError('min')) {
+                      <mat-error>The reserve can't be negative.</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Reason</mat-label>
+                    <input matInput formControlName="reason" maxlength="2000" />
+                    <mat-hint>Kept in the audit history.</mat-hint>
+                  </mat-form-field>
+                  <button mat-flat-button type="submit" [disabled]="busy()">Save reserve</button>
+                </form>
+              }
+            }
+
+            @if (can('requestInformation')) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="wide"
+                (click)="toggle('requestInformation', c)"
+              >
+                <mat-icon>help</mat-icon> Request information
+              </button>
+              @if (open() === 'requestInformation') {
+                <form [formGroup]="infoForm" (ngSubmit)="requestInformation(c)" class="panel">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Question for the claimant</mat-label>
+                    <textarea
+                      matInput
+                      rows="3"
+                      formControlName="question"
+                      maxlength="2000"
+                    ></textarea>
+                  </mat-form-field>
+                  <button mat-flat-button type="submit" [disabled]="busy()">Send question</button>
+                </form>
+              }
+            }
+
+            @if (can('approve')) {
+              <button mat-stroked-button type="button" class="wide" (click)="toggle('approve', c)">
+                <mat-icon>check_circle</mat-icon> Approve
+              </button>
+              @if (open() === 'approve') {
+                <form [formGroup]="approveForm" (ngSubmit)="approve(c)" class="panel">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Settlement amount</mat-label>
+                    <span matTextPrefix>{{ c.currency }}&nbsp;</span>
+                    <input
+                      matInput
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      formControlName="settlementAmount"
+                    />
+                    @if (approveForm.controls.settlementAmount.hasError('min')) {
+                      <mat-error>Must be more than zero.</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Note (optional)</mat-label>
+                    <input matInput formControlName="note" maxlength="4000" />
+                  </mat-form-field>
+                  <button mat-flat-button type="submit" [disabled]="busy()">Approve…</button>
+                </form>
+              }
+            }
+
+            @if (can('settle')) {
+              <button
+                mat-flat-button
+                type="button"
+                class="wide"
+                [disabled]="busy()"
+                (click)="settle(c)"
+              >
+                <mat-icon>payments</mat-icon> Record payment…
+              </button>
+            }
+
+            @if (can('reject')) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="wide danger"
+                (click)="toggle('reject', c)"
+              >
+                <mat-icon>cancel</mat-icon> Reject
+              </button>
+              @if (open() === 'reject') {
+                <form [formGroup]="rejectForm" (ngSubmit)="reject(c)" class="panel">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Reason (the claimant sees this)</mat-label>
+                    <textarea
+                      matInput
+                      rows="3"
+                      formControlName="reason"
+                      maxlength="2000"
+                    ></textarea>
+                  </mat-form-field>
+                  <button mat-flat-button type="submit" class="danger-fill" [disabled]="busy()">
+                    Reject…
+                  </button>
+                </form>
+              }
+            }
+
+            @if (actions().length === 1) {
+              <p class="muted small">
+                @if (c.assignedOfficerId && !assignedToMe()) {
+                  This claim is assigned to another officer. You can add notes.
+                } @else {
+                  This claim is closed. You can still add notes.
+                }
+              </p>
+            }
+          </mat-card-content>
+        </mat-card>
+      </aside>
+    </div>
+  }
+</app-page-state>
