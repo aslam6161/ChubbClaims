@@ -341,6 +341,53 @@ namespace ChubbClaims.Repository.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("ChubbClaims.Domain.ReadModels.ExposureByMarket", b =>
+                {
+                    b.Property<string>("Market")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("ClaimType")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTimeOffset>("LastEventAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("OpenClaims")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OutstandingReserve")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Market", "Currency", "ClaimType");
+
+                    b.ToTable("ExposureByMarket", (string)null);
+                });
+
+            modelBuilder.Entity("ChubbClaims.Domain.ReadModels.ProcessedEvent", b =>
+                {
+                    b.Property<string>("ConsumerGroup")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ConsumerGroup", "EventId");
+
+                    b.ToTable("ProcessedEvents", (string)null);
+                });
+
             modelBuilder.Entity("ChubbClaims.Repository.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -375,9 +422,15 @@ namespace ChubbClaims.Repository.Migrations
                     b.Property<DateTimeOffset?>("ProcessedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedAt", "OccurredAt");
+                    b.HasIndex("ProcessedAt", "Sequence");
 
                     b.ToTable("OutboxMessages", (string)null);
                 });

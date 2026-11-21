@@ -1,4 +1,5 @@
 using ChubbClaims.Domain.Entity;
+using ChubbClaims.Domain.ReadModels;
 using ChubbClaims.Repository.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -39,8 +40,30 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         b.Property(m => m.Payload).IsRequired();
         b.Property(m => m.CorrelationId).HasMaxLength(64);
         b.Property(m => m.LastError).HasMaxLength(2000);
+        b.Property(m => m.Sequence).UseIdentityColumn();
 
-        // The publisher polls "unpublished, oldest first".
-        b.HasIndex(m => new { m.ProcessedAt, m.OccurredAt });
+        // The publisher polls "unpublished, in insertion order".
+        b.HasIndex(m => new { m.ProcessedAt, m.Sequence });
+    }
+}
+
+public sealed class ExposureByMarketConfiguration : IEntityTypeConfiguration<ExposureByMarket>
+{
+    public void Configure(EntityTypeBuilder<ExposureByMarket> b)
+    {
+        b.ToTable("ExposureByMarket");
+        b.HasKey(e => new { e.Market, e.Currency, e.ClaimType });
+        b.Property(e => e.Currency).HasMaxLength(3).IsFixedLength();
+    }
+}
+
+public sealed class ProcessedEventConfiguration : IEntityTypeConfiguration<ProcessedEvent>
+{
+    public void Configure(EntityTypeBuilder<ProcessedEvent> b)
+    {
+        b.ToTable("ProcessedEvents");
+        // The primary key is the idempotency guarantee: one row per (consumer group, event).
+        b.HasKey(e => new { e.ConsumerGroup, e.EventId });
+        b.Property(e => e.ConsumerGroup).HasMaxLength(100);
     }
 }

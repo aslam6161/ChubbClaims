@@ -23,6 +23,9 @@ public sealed class OutboxMessage
     /// <summary>Same as the event id, so a re-published message has the same id (consumers dedupe on it).</summary>
     public Guid Id { get; private set; }
 
+    /// <summary>Database identity: strict insertion order, so events are published in the order they happened.</summary>
+    public long Sequence { get; private set; }
+
     public string EventType { get; private set; } = null!;
 
     /// <summary>The Kafka message key: all events of one claim go to one partition, in order.</summary>
