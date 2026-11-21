@@ -1,4 +1,5 @@
 using ChubbClaims.Presentation.Auth;
+using ChubbClaims.Presentation.Hubs;
 using ChubbClaims.Service.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -31,6 +32,20 @@ public static class IdentityServiceExtensions
                     NameClaimType = AppClaimTypes.Name,
                     RoleClaimType = AppClaimTypes.Role,
                     ClockSkew = TimeSpan.FromSeconds(30),
+                };
+
+                // Browsers cannot set an Authorization header on a WebSocket, so the SignalR client
+                // sends the token as ?access_token=. Accepted only on the hub path. (Request logging
+                // records the path, not the query string, so the token is not logged.)
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments(ClaimsHub.Path))
+                            context.Token = token;
+                        return Task.CompletedTask;
+                    },
                 };
             });
 
