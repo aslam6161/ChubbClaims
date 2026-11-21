@@ -1,0 +1,25 @@
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Loading" />
+}
+@if (appError(); as err) {
+  <div class="state state--error" role="alert">
+    <mat-icon>error</mat-icon>
+    <div>
+      <strong>{{ err.title }}</strong>
+      @if (err.detail) {
+        <p>{{ err.detail }}</p>
+      }
+      @if (err.correlationId) {
+        <p class="ref">Reference: {{ err.correlationId }}</p>
+      }
+    </div>
+    <button mat-stroked-button type="button" (click)="retry.emit()">Try again</button>
+  </div>
+} @else if (!loading() && empty()) {
+  <div class="state state--empty">
+    <mat-icon>inbox</mat-icon>
+    <p>{{ emptyMessage() }}</p>
+  </div>
+} @else if (!empty()) {
+  <ng-content />
+}
