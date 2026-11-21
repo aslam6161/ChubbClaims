@@ -1,3 +1,5 @@
+using ChubbClaims.Messaging;
+using ChubbClaims.Messaging.Settings;
 using ChubbClaims.Presentation.Extensions;
 using ChubbClaims.Presentation.Middleware;
 using ChubbClaims.Repository;
@@ -33,6 +35,7 @@ try
     builder.Services.AddServices();
     builder.Services.AddRepository(builder.Configuration.GetConnectionString("ClaimsDb")
         ?? throw new InvalidOperationException("Connection string 'ClaimsDb' is not configured."));
+    builder.Services.AddMessaging(builder.Configuration.GetSection(KafkaSettings.SectionName).Get<KafkaSettings>() ?? new KafkaSettings());
 
     var app = builder.Build();
 
