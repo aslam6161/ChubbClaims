@@ -1,0 +1,71 @@
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+h1 {
+  margin: 0;
+}
+.overdue-count {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  color: var(--mat-sys-error);
+  font-weight: 500;
+}
+mat-tab-group {
+  margin: 0.5rem 0 1rem;
+}
+.queue {
+  width: 100%;
+}
+.row {
+  cursor: pointer;
+}
+.row:hover {
+  background: var(--mat-sys-surface-container-low);
+}
+.row--overdue {
+  box-shadow: inset 3px 0 0 var(--mat-sys-error);
+}
+td.is-overdue {
+  color: var(--mat-sys-error);
+  font-weight: 500;
+}
+.overdue {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+.high {
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a4b00;
+}
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+button mat-progress-spinner {
+  display: inline-block;
+  margin-right: 0.4rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+@media (max-width: 800px) {
+  .mat-column-type,
+  .mat-column-age,
+  .mat-column-waitingOn {
+    display: none;
+  }
+}

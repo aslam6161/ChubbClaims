@@ -1,4 +1,4 @@
-import type { ClaimStatus } from '../_models/api-types';
+import type { ClaimStatus, UserRole, WaitingOn } from '../_models/api-types';
 
 /** Visual tone for a status badge. */
 export type StatusTone = 'neutral' | 'progress' | 'attention' | 'success' | 'danger';
@@ -53,4 +53,60 @@ export function needsClaimantAction(status: ClaimStatus): boolean {
 
 export function isClosed(status: ClaimStatus): boolean {
   return status === 'Settled' || status === 'Rejected';
+}
+
+// ---------------------------------------------------------------- Staff actions
+
+export type ClaimAction =
+  'pickUp' | 'adjustReserve' | 'requestInformation' | 'approve' | 'settle' | 'reject' | 'addNote';
+
+/** Which status each action may start from: the same table as the backend's ClaimTransitions. */
+const ACTION_FROM: Record<Exclude<ClaimAction, 'addNote'>, readonly ClaimStatus[]> = {
+  pickUp: ['Submitted'],
+  adjustReserve: ['UnderReview', 'AwaitingInformation', 'Approved'],
+  requestInformation: ['UnderReview'],
+  approve: ['UnderReview'],
+  settle: ['Approved'],
+  reject: ['UnderReview'],
+};
+
+/**
+ * The actions to offer for a claim, mirroring the domain rules (FRONTEND.md §6):
+ * - claimants get none here (they answer questions on their own screen);
+ * - any staff member in the market can pick up an unassigned claim and add notes;
+ * - everything else needs the claim to be assigned to the caller and in the right status.
+ * This only decides which buttons to show: the API re-checks every action.
+ */
+export function allowedActions(
+  status: ClaimStatus,
+  role: UserRole,
+  isAssignedToMe: boolean,
+): ClaimAction[] {
+  if (role === 'Claimant') return [];
+
+  const actions: ClaimAction[] = [];
+  if (ACTION_FROM.pickUp.includes(status)) actions.push('pickUp');
+  if (isAssignedToMe) {
+    for (const action of [
+      'adjustReserve',
+      'requestInformation',
+      'approve',
+      'settle',
+      'reject',
+    ] as const) {
+      if (ACTION_FROM[action].includes(status)) actions.push(action);
+    }
+  }
+  actions.push('addNote');
+  return actions;
+}
+
+const WAITING_ON: Record<WaitingOn, string> = {
+  Officer: 'Claims team',
+  Claimant: 'Claimant',
+  Nobody: 'Closed',
+};
+
+export function waitingOnLabel(waitingOn: WaitingOn): string {
+  return WAITING_ON[waitingOn];
 }

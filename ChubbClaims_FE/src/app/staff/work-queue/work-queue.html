@@ -1,0 +1,99 @@
+<header class="page-header">
+  <h1>Work queue</h1>
+  @if (overdue() > 0) {
+    <p class="overdue-count" role="status">
+      <mat-icon>schedule</mat-icon>
+      {{ overdue() }} overdue
+    </p>
+  }
+</header>
+
+<mat-tab-group
+  (selectedIndexChange)="selectTab($event)"
+  mat-stretch-tabs="false"
+  animationDuration="0"
+>
+  @for (v of views; track v.view) {
+    <mat-tab [label]="v.label" />
+  }
+</mat-tab-group>
+
+<app-page-state
+  [loading]="queue.isLoading()"
+  [error]="queue.error()"
+  [empty]="rows().length === 0"
+  [emptyMessage]="
+    view() === 'Unassigned' ? 'No unassigned claims in your market.' : 'You have no open claims.'
+  "
+  (retry)="queue.reload()"
+>
+  <table mat-table [dataSource]="rows()" class="queue">
+    <ng-container matColumnDef="claimNumber">
+      <th mat-header-cell *matHeaderCellDef>Claim</th>
+      <td mat-cell *matCellDef="let r">
+        <a [routerLink]="['/staff/claims', r.id]" (click)="$event.stopPropagation()">{{
+          r.claimNumber
+        }}</a>
+        @if (r.priority === 'High') {
+          <span class="high" title="High priority">High</span>
+        }
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="type">
+      <th mat-header-cell *matHeaderCellDef>Type</th>
+      <td mat-cell *matCellDef="let r">{{ r.type }}</td>
+    </ng-container>
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let r"><app-status-badge [status]="r.status" /></td>
+    </ng-container>
+    <ng-container matColumnDef="age">
+      <th mat-header-cell *matHeaderCellDef>Age</th>
+      <td mat-cell *matCellDef="let r">{{ r.ageDays }} {{ r.ageDays === 1 ? 'day' : 'days' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="sla">
+      <th mat-header-cell *matHeaderCellDef>Decision due</th>
+      <td mat-cell *matCellDef="let r" [class.is-overdue]="r.isOverdue">
+        {{ r.slaDueAt | date: 'd MMM' }}
+        @if (r.isOverdue) {
+          <span class="overdue">Overdue</span>
+        }
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="waitingOn">
+      <th mat-header-cell *matHeaderCellDef>Waiting on</th>
+      <td mat-cell *matCellDef="let r">{{ waitingOn(r.waitingOn) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="outstanding">
+      <th mat-header-cell *matHeaderCellDef class="num">Outstanding</th>
+      <td mat-cell *matCellDef="let r" class="num">
+        {{ r.outstandingReserve | money: r.currency }}
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef><span class="sr-only">Actions</span></th>
+      <td mat-cell *matCellDef="let r">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="pickingUp() !== null"
+          (click)="pickUp(r, $event)"
+        >
+          @if (pickingUp() === r.id) {
+            <mat-progress-spinner diameter="16" mode="indeterminate" />
+          }
+          Pick up
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+    <tr
+      mat-row
+      *matRowDef="let r; columns: columns()"
+      (click)="open(r)"
+      class="row"
+      [class.row--overdue]="r.isOverdue"
+    ></tr>
+  </table>
+</app-page-state>

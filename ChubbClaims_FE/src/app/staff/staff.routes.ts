@@ -19,6 +19,12 @@ export const staffRoutes: Routes = [
         loadComponent: () => import('./work-queue/work-queue').then((m) => m.WorkQueue),
       },
       {
+        path: 'claims/:id',
+        title: 'Claim',
+        loadComponent: () =>
+          import('./claim-workbench/claim-workbench').then((m) => m.ClaimWorkbench),
+      },
+      {
         path: 'team',
         loadComponent: () => import('./team-dashboard/team-dashboard').then((m) => m.TeamDashboard),
       },
