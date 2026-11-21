@@ -134,3 +134,23 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Diagrams in Mermaid (GitHub renders them, they diff in review, no image files to go stale); the state diagram is drawn from the transition table, not from the spec.
 - Verified the README the way a reviewer would use it: cloned the committed branch into a temp folder, `cp .env.example .env`, `docker compose up --build` under a separate project name (own empty database): healthy after 52 s (warm build cache), seeded, 27 events published; every URL in the README returns 200; all four smoke suites 80/80 on that fresh stack; `dotnet test` on the clean checkout 203/203. Then removed only the test project's containers, volume and image and restarted my stack.
 - Time, from git: first code commit 10:15, backend complete 11:55 (planning before that).
+
+### 2026-11-21 · Web phase 1 · Angular 22 scaffold
+- Asked: `ng new` with v22 defaults, Material, dev proxy, app shell, API types generated from OpenAPI (FRONTEND.md §10 phase 1).
+- Checked the generated defaults before writing code (the spec asked for this): v22 writes `login.ts` / `class Login` and services with `@Service()`, not `.component.ts` / `@Injectable`. That conflicts with FRONTEND.md §4 (my IMSAnuglar naming). **I chose the Angular 22 defaults** so generated and hand-written files match; spec updated. Change detection isn't stated in the generated code, so OnPush is set as the generator default and written explicitly on every component.
+- Challenged: `openapi-typescript` (peer TypeScript 5) wouldn't install next to Angular 22's TypeScript 6. Rejected `--legacy-peer-deps` (it hides every peer conflict, not just this one); the `api:types` script runs a pinned version through `npx` in isolation.
+- Wrong turn, corrected: the type generator failed with ECONNREFUSED on `::1` and the AI's first diagnosis was IPv6. Real cause: Docker Desktop wasn't running. Kept `127.0.0.1` in the proxy and script anyway (harmless, avoids the real Node `localhost` -> `::1` pitfall).
+- **Found two backend contract bugs by generating the client** (exactly what the generated-types workflow is for):
+  1. `GET /api/claims/{id}` has no 200 response in OpenAPI: once an action has any `[ProducesResponseType]`, ASP.NET stops inferring the success type from `Task<T>`, and that action only declared the 404. Every other GET checked by script: only this one.
+  2. Every number is typed `number | string` (e.g. `openClaims: number | string`), because the default web JSON options accept numbers in quotes (`AllowReadingFromString`) and the OpenAPI generator documents that.
+  Both are backend fixes; per FRONTEND.md §11 I stopped and asked rather than working around them in the UI.
+- Verified: build clean (67 kB initial transfer), Vitest 1/1, `ng serve` on :4200, proxy reaches the API (`/health`, `/api/auth/dev-users` -> 9 users).
+
+### 2026-11-21 · Fix · OpenAPI contract bugs found by the generated client
+- Asked: fix the two backend contract bugs found in web phase 1, on their own branch, with a guard test.
+- `GET /api/claims/{id}`: added `[ProducesResponseType<ClaimDetailResponse>(200)]`.
+- Numbers: one `ApiJson.Configure` now sets the JSON format for controllers, the OpenAPI generator and SignalR (enums as strings + `NumberHandling.Strict`). Before, the three were configured separately, which is how they could drift. A quoted number is now a 400 that names the field (`$.estimatedLossAmount`), checked live.
+- Guard tests: a reflection test fails if any action with a typed body declares response types but no 2xx. **Proved it works by removing the fix: it failed naming exactly `ClaimsController.GetById`**, then restored. Plus tests that controllers and the OpenAPI generator share the strict format, and that `"5000"` is rejected while `5000` is accepted.
+- Verified: 206 unit tests; regenerated TS types have 0 `number | string` and a typed claim detail; all four smoke suites 80/80 on a fresh seed (stricter numbers broke no real client); frontend builds.
+- Lesson for the walkthrough: generating the client from the contract found two bugs that 200+ backend tests and 80 HTTP checks did not, because both were about what the API *documents*, not what it *does*.
+
