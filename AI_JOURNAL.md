@@ -89,3 +89,16 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Verified: officer smoke 31/31 (queue scoping per market, SLA order with overdue first, waiting-on, 403/404/409/422/400 cases, full lifecycle with history and notes, claimant sees decision but not notes); claimant smoke still 22/22; 181 unit tests.
 - More time: paging for the queue, SLA pause while waiting on the claimant, claimant name in queue rows (needs a users join or a denormalised column).
 
+### 2026-11-21 · Phase 6 · Kafka: outbox publisher and idempotent exposure projection
+- Asked: outbox publisher to claims.events.v1, exposure projector consumer, exposure endpoint (BACKEND.md §6, §7, §12 phase 6).
+- Accepted: Acks=All + idempotent producer, key = claimId; commit offsets only after the side effect; `ProcessedEvents (group, eventId)` written in the same transaction as the read-model change; consumers parse their own `EventEnvelope` contract instead of referencing domain classes.
+- Challenged: the first projector design was read-modify-write of the `ExposureByMarket` row through EF tracking. With two projector instances that loses updates. Changed to an atomic SQL increment (`ExecuteUpdate`, `x = x + delta`) inside the idempotency transaction, wrapped in the retrying execution strategy.
+- Challenged: publishing order. `OccurredAt` ties and SQL Server's uniqueidentifier sort order don't give a reliable sequence, so I added an identity `Sequence` column to the outbox and the publisher stops at the first failed message (publishing later ones would reorder a claim's events).
+- Challenged: what a consumer does on failure. Not-an-envelope = skip with an error log (retrying can't help); handler failure = retry with backoff and block the partition (skipping would silently corrupt exposure). Dead-letter topic left as P2.
+- Overrode: `ExposureProjection` lives in Messaging, not Service as the spec said: Messaging may only reference Repository and Domain.
+- Verified on the real stack (fresh DB): 27 seed events published (partitions 4/16/7), consumer lag 0; read model equals the truth recomputed from the Claims table for all 8 market/currency/type rows; live FNOL visible in exposure after ~1 s.
+- Verified idempotency by replay: reset the consumer group to offset 0 and restarted: all 19 money events were redelivered, all 19 skipped as duplicates, read model byte-for-byte identical. (Learned: offsets can only be reset when the group is Empty; a killed process keeps it Stable until the 45 s session timeout.)
+- Verified the outbox under failure: stopped Kafka, 3 FNOLs still returned 201, outbox held 3 unpublished events; Kafka back -> drained in ~9 s, exposure matched the Claims table again.
+- Verified in Docker (internal listener kafka:29092): the request's correlation id appears in the API log, the service log and the consumer log (travels in the Kafka header).
+- Tests: 190 passing, incl. a producer/consumer contract test (domain events -> outbox envelope -> consumer parse -> deltas; open claim sums to its outstanding reserve, closed to zero; unknown extra fields ignored) and publisher ordering/failure tests.
+
