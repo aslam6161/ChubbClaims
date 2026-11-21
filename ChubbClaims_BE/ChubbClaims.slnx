@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="ChubbClaims.Domain/ChubbClaims.Domain.csproj" />
+  <Project Path="ChubbClaims.Messaging/ChubbClaims.Messaging.csproj" />
+  <Project Path="ChubbClaims.Presentation/ChubbClaims.Presentation.csproj" />
+  <Project Path="ChubbClaims.Repository/ChubbClaims.Repository.csproj" />
+  <Project Path="ChubbClaims.Service/ChubbClaims.Service.csproj" />
+  <Project Path="ChubbClaims.Tests/ChubbClaims.Tests.csproj" />
+</Solution>
