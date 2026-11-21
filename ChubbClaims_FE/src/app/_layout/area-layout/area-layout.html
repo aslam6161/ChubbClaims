@@ -12,6 +12,19 @@
     }
   </nav>
   <span class="spacer"></span>
+  <span
+    class="live"
+    [attr.data-state]="live()"
+    role="status"
+    [title]="
+      live() === 'live'
+        ? 'Updates appear automatically'
+        : 'Refreshing every 30 seconds until live updates are back'
+    "
+  >
+    <span class="dot"></span>
+    {{ live() === 'live' ? 'Live' : live() === 'paused' ? 'Live updates paused' : 'Connecting…' }}
+  </span>
   @if (user(); as u) {
     <span class="who">
       <strong>{{ u.name }}</strong>

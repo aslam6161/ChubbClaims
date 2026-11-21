@@ -1,10 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  input,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { homeUrlFor, roleLabel } from '../../_helpers/home-route';
 import { AuthStore } from '../../_services/auth-store';
+import { RealtimeService } from '../../_services/realtime';
 
 export interface NavLink {
   readonly label: string;
@@ -33,6 +41,15 @@ export interface NavLink {
 export class AreaLayout {
   private readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly realtime = inject(RealtimeService);
+
+  /** Live updates for as long as a signed-in area is on screen. */
+  constructor() {
+    void this.realtime.connect();
+    inject(DestroyRef).onDestroy(() => void this.realtime.disconnect());
+  }
+
+  protected readonly live = this.realtime.state;
 
   readonly nav = input<readonly NavLink[]>([]);
 
@@ -45,6 +62,7 @@ export class AreaLayout {
   });
 
   protected signOut(): void {
+    void this.realtime.disconnect();
     this.auth.signOut();
     void this.router.navigateByUrl('/login');
   }
