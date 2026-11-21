@@ -17,6 +17,7 @@ import {
   statusLabel,
 } from '../../_helpers/claim-status';
 import { valueOr } from '../../_helpers/resource';
+import { reloadOnClaimUpdates } from '../../_services/realtime';
 import type { ClaimDetail, UserRole } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
 import { MoneyPipe } from '../../_shared/money.pipe';
@@ -54,6 +55,10 @@ export class ClaimDetailPage {
 
   protected readonly claim = httpResource<ClaimDetail>(() => `/api/claims/${this.id()}`);
   protected readonly detail = computed(() => valueOr(this.claim, undefined));
+
+  constructor() {
+    reloadOnClaimUpdates(this.claim, (m) => m.claimId === this.id());
+  }
   protected readonly answeredRequests = computed(() =>
     (this.detail()?.informationRequests ?? []).filter((r) => !r.isOpen),
   );

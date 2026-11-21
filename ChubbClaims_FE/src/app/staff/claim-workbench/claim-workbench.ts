@@ -19,6 +19,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { allowedActions, ClaimAction, statusLabel } from '../../_helpers/claim-status';
 import { valueOr } from '../../_helpers/resource';
+import { reloadOnClaimUpdates } from '../../_services/realtime';
 import type { ClaimDetail, UserRole } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
 import { AuthStore } from '../../_services/auth-store';
@@ -65,6 +66,11 @@ export class ClaimWorkbench {
 
   protected readonly claim = httpResource<ClaimDetail>(() => `/api/claims/${this.id()}`);
   protected readonly detail = computed(() => valueOr(this.claim, undefined));
+
+  constructor() {
+    // Someone else (the claimant answering, another officer) changed this claim: show it.
+    reloadOnClaimUpdates(this.claim, (m) => m.claimId === this.id());
+  }
 
   protected readonly assignedToMe = computed(
     () =>

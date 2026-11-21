@@ -10,6 +10,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { waitingOnLabel } from '../../_helpers/claim-status';
 import { valueOr } from '../../_helpers/resource';
+import { reloadOnClaimUpdates } from '../../_services/realtime';
 import type { WorkQueueItem, WorkQueueView } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
 import { MoneyPipe } from '../../_shared/money.pipe';
@@ -50,6 +51,11 @@ export class WorkQueue {
   protected readonly queue = httpResource<WorkQueueItem[]>(
     () => `/api/work-queue?view=${this.view()}&sort=Sla`,
   );
+  constructor() {
+    // Any change in my market can move a claim in or out of either tab.
+    reloadOnClaimUpdates(this.queue);
+  }
+
   protected readonly rows = computed(() => valueOr(this.queue, [] as WorkQueueItem[]));
   protected readonly overdue = computed(() => this.rows().filter((r) => r.isOverdue).length);
 

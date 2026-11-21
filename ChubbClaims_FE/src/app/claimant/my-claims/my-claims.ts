@@ -7,6 +7,7 @@ import { MatTableModule } from '@angular/material/table';
 import { Router, RouterLink } from '@angular/router';
 import { claimantNextStep, needsClaimantAction } from '../../_helpers/claim-status';
 import { valueOr } from '../../_helpers/resource';
+import { reloadOnClaimUpdates } from '../../_services/realtime';
 import type { ClaimSummary } from '../../_models/api-types';
 import { MoneyPipe } from '../../_shared/money.pipe';
 import { PageState } from '../../_shared/page-state/page-state';
@@ -32,6 +33,10 @@ export class MyClaims {
   private readonly router = inject(Router);
 
   protected readonly claims = httpResource<ClaimSummary[]>(() => '/api/claims/mine');
+  constructor() {
+    reloadOnClaimUpdates(this.claims);
+  }
+
   protected readonly rows = computed(() => valueOr(this.claims, [] as ClaimSummary[]));
   protected readonly actionNeeded = computed(
     () => this.rows().filter((c) => needsClaimantAction(c.status)).length,
