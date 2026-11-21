@@ -1,0 +1,26 @@
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+}
+.badge[data-tone='progress'] {
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+.badge[data-tone='attention'] {
+  background: #ffe8b3;
+  color: #5c3d00;
+}
+.badge[data-tone='success'] {
+  background: #c9f0d3;
+  color: #0f4d22;
+}
+.badge[data-tone='danger'] {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}

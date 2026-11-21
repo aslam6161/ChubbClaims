@@ -1,0 +1,213 @@
+<a mat-button routerLink="/claimant/claims" class="back"
+  ><mat-icon>arrow_back</mat-icon> My claims</a
+>
+<h1>Report an incident</h1>
+
+<app-page-state
+  [loading]="policies.isLoading()"
+  [error]="policies.error()"
+  [empty]="policyList().length === 0"
+  emptyMessage="You have no policies to claim on."
+  (retry)="policies.reload()"
+>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-stepper linear orientation="vertical" #stepper>
+      <!-- 1. Policy: the claim's market and currency come from it -->
+      <mat-step [stepControl]="form.controls.policyNumber" label="Choose the policy">
+        <mat-radio-group formControlName="policyNumber" class="policies" aria-label="Policy">
+          @for (p of policyList(); track p.policyNumber) {
+            <mat-radio-button
+              [value]="p.policyNumber"
+              [disabled]="!p.isActive"
+              (change)="choosePolicy(p)"
+            >
+              <span class="policy">
+                <strong>{{ p.productType }} · {{ p.policyNumber }}</strong>
+                <span class="muted">
+                  {{ p.market }} · {{ p.currency }} · cover
+                  {{ p.effectiveFrom | date: 'd MMM y' }} –
+                  {{ p.effectiveTo | date: 'd MMM y' }}
+                  @if (!p.isActive) {
+                    · <em>cancelled</em>
+                  } @else if (p.effectiveTo < today) {
+                    ·
+                    <em
+                      >cover ended: only incidents before {{ p.effectiveTo | date: 'd MMM y' }}</em
+                    >
+                  }
+                </span>
+              </span>
+            </mat-radio-button>
+          }
+        </mat-radio-group>
+        <div class="actions">
+          <button mat-flat-button matStepperNext type="button" [disabled]="!selectedPolicy()">
+            Next
+          </button>
+        </div>
+      </mat-step>
+
+      <!-- 2. What happened -->
+      <mat-step [stepControl]="form.controls.details" label="What happened" formGroupName="details">
+        <mat-form-field appearance="outline">
+          <mat-label>Date of the incident</mat-label>
+          <input matInput type="date" formControlName="incidentDate" [max]="today" required />
+          @let date = form.controls.details.controls.incidentDate;
+          @if (date.hasError('required')) {
+            <mat-error>Enter the date.</mat-error>
+          } @else if (date.hasError('future')) {
+            <mat-error>The date can't be in the future.</mat-error>
+          } @else if (date.hasError('notCovered')) {
+            <mat-error>
+              This policy only covers {{ date.getError('notCovered').from | date: 'd MMM y' }} to
+              {{ date.getError('notCovered').to | date: 'd MMM y' }}.
+            </mat-error>
+          } @else if (date.hasError('server')) {
+            <mat-error>{{ date.getError('server') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Where did it happen?</mat-label>
+          <input matInput formControlName="incidentLocation" maxlength="500" required />
+          @if (form.controls.details.controls.incidentLocation.hasError('required')) {
+            <mat-error>Enter the location.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>What happened?</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="description"
+            maxlength="4000"
+            required
+          ></textarea>
+          @if (form.controls.details.controls.description.hasError('required')) {
+            <mat-error>Describe what happened.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Estimated loss (optional)</mat-label>
+          <span matTextPrefix>{{ selectedPolicy()?.currency }}&nbsp;</span>
+          <input
+            matInput
+            type="number"
+            min="0.01"
+            step="0.01"
+            formControlName="estimatedLossAmount"
+          />
+          <mat-hint>Leave empty if you don't know yet.</mat-hint>
+          @if (form.controls.details.controls.estimatedLossAmount.hasError('min')) {
+            <mat-error>The amount must be more than zero.</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="actions">
+          <button mat-button matStepperPrevious type="button">Back</button>
+          <button mat-flat-button matStepperNext type="button">Next</button>
+        </div>
+      </mat-step>
+
+      <!-- 3. Vehicle or property, depending on the policy -->
+      <mat-step
+        [stepControl]="
+          selectedPolicy()?.productType === 'Property'
+            ? form.controls.property
+            : form.controls.motor
+        "
+        [label]="selectedPolicy()?.productType === 'Property' ? 'The property' : 'The vehicle'"
+      >
+        @if (selectedPolicy()?.productType === 'Property') {
+          <div formGroupName="property">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Property address</mat-label>
+              <input matInput formControlName="propertyAddress" maxlength="500" required />
+              @if (form.controls.property.controls.propertyAddress.hasError('required')) {
+                <mat-error>Enter the address.</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Type of damage</mat-label>
+              <mat-select formControlName="damageType" required>
+                @for (t of damageTypes; track t) {
+                  <mat-option [value]="t">{{ t }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.property.controls.damageType.hasError('required')) {
+                <mat-error>Choose the type of damage.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        } @else {
+          <div formGroupName="motor">
+            <mat-form-field appearance="outline">
+              <mat-label>Vehicle registration</mat-label>
+              <input matInput formControlName="vehicleRegistration" maxlength="20" required />
+              @if (form.controls.motor.controls.vehicleRegistration.hasError('required')) {
+                <mat-error>Enter the registration.</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Police report number (optional)</mat-label>
+              <input matInput formControlName="policeReportNumber" maxlength="50" />
+            </mat-form-field>
+            <mat-checkbox formControlName="thirdPartyInvolved"
+              >Another vehicle or person was involved</mat-checkbox
+            >
+          </div>
+        }
+        <div class="actions">
+          <button mat-button matStepperPrevious type="button">Back</button>
+          <button mat-flat-button matStepperNext type="button">Next</button>
+        </div>
+      </mat-step>
+
+      <!-- 4. Review and submit -->
+      <mat-step label="Review and submit">
+        @if (selectedPolicy(); as p) {
+          @let d = form.controls.details.getRawValue();
+          <dl class="review">
+            <dt>Policy</dt>
+            <dd>{{ p.productType }} · {{ p.policyNumber }} ({{ p.market }})</dd>
+            <dt>Date</dt>
+            <dd>{{ d.incidentDate | date: 'd MMM y' }}</dd>
+            <dt>Location</dt>
+            <dd>{{ d.incidentLocation }}</dd>
+            <dt>What happened</dt>
+            <dd>{{ d.description }}</dd>
+            <dt>Estimated loss</dt>
+            <dd>{{ d.estimatedLossAmount | money: p.currency }}</dd>
+          </dl>
+        }
+
+        @if (submitError(); as err) {
+          <div class="error" role="alert">
+            <strong>{{ err.status === 422 ? "We couldn't accept this claim" : err.title }}</strong>
+            @if (err.detail) {
+              <p>{{ err.detail }}</p>
+            }
+            @for (m of unmatchedErrors(); track m) {
+              <p>{{ m }}</p>
+            }
+            @if (err.status === 400) {
+              <p>Please correct the highlighted fields.</p>
+            }
+          </div>
+        }
+
+        <div class="actions">
+          <button mat-button matStepperPrevious type="button">Back</button>
+          <button mat-flat-button type="submit" [disabled]="submitting() || form.invalid">
+            @if (submitting()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            }
+            Submit claim
+          </button>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  </form>
+</app-page-state>
