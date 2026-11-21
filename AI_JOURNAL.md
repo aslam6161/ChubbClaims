@@ -154,3 +154,13 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Verified: 206 unit tests; regenerated TS types have 0 `number | string` and a typed claim detail; all four smoke suites 80/80 on a fresh seed (stricter numbers broke no real client); frontend builds.
 - Lesson for the walkthrough: generating the client from the contract found two bugs that 200+ backend tests and 80 HTTP checks did not, because both were about what the API *documents*, not what it *does*.
 
+### 2026-11-21 · Web phase 2 · Dev login, interceptors, role-based routing
+- Asked: AuthStore, dev login page, auth + ProblemDetails interceptors, `canMatch` role guards, role redirects, tests (FRONTEND.md §10 phase 2).
+- Accepted: session as signals in `sessionStorage` (refresh keeps you signed in, a new tab doesn't); token attached only to `/api/` and `/hubs/` URLs, never a third-party URL; every HTTP failure becomes one `AppError` (status, plain message, camelCase field errors, correlation id); a shared `PageState` component for loading / error / empty.
+- **Challenged: interceptor order.** The AI first registered auth before problem, with a comment claiming auth would still see the raw 401. Wrong: responses pass back through interceptors in reverse, so problem must be outermost. Fixed, and **proved the test guards it: swapping the order makes the 401 test fail**.
+- Changed the spec: one `area-layout` (links from route data) instead of `claimant-layout` + `staff-layout`, which would have been identical apart from their links.
+- **Challenged my own browser check.** The first version checked that a claimant never downloads "staff-routes" by chunk name, but dev chunks are hashed, so that check could never fail. Rewrote it to match the component source paths the dev server reports, with positive controls (the officer *must* load staff code).
+- Verified in headless Chromium (Playwright, scratchpad only; Playwright e2e in the repo stays P2): 15/15. A protected URL redirects to login; 9 seeded users listed; each role lands on its home; a claimant typing /staff/queue is sent home and **never downloads staff code** (and vice versa); refresh keeps the session; sign-out; forged token -> 401.
+- Tests: Vitest 14/14 (guard: allowed / other role / signed out / expired / login page; interceptors: bearer only on API URLs, 401 sign-out, 409 and 400 ProblemDetails mapping, network failure; store: persistence across refresh, expiry, sign-out).
+- Area pages are placeholders, replaced in phases 3-5.
+
