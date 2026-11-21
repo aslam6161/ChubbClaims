@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 import { homeUrlFor, roleLabel } from '../../_helpers/home-route';
+import { valueOr } from '../../_helpers/resource';
 import type { User } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
 import { PageState } from '../../_shared/page-state/page-state';
@@ -27,12 +28,11 @@ export class Login {
   readonly expired = input<string>();
 
   protected readonly users = httpResource<User[]>(() => '/api/auth/dev-users');
+  protected readonly allUsers = computed(() => valueOr(this.users, [] as User[]));
   protected readonly claimants = computed(() =>
-    (this.users.value() ?? []).filter((u) => u.role === 'Claimant'),
+    this.allUsers().filter((u) => u.role === 'Claimant'),
   );
-  protected readonly staff = computed(() =>
-    (this.users.value() ?? []).filter((u) => u.role !== 'Claimant'),
-  );
+  protected readonly staff = computed(() => this.allUsers().filter((u) => u.role !== 'Claimant'));
 
   protected readonly signingInAs = signal<string | null>(null);
   protected readonly error = signal<AppError | null>(null);

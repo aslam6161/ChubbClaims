@@ -1,0 +1,149 @@
+<a mat-button routerLink="/claimant/claims" class="back"
+  ><mat-icon>arrow_back</mat-icon> My claims</a
+>
+
+<app-page-state
+  [loading]="claim.isLoading()"
+  [error]="claim.error()"
+  [empty]="!detail()"
+  (retry)="claim.reload()"
+>
+  @if (detail(); as c) {
+    <header class="page-header">
+      <div>
+        <h1>{{ c.claimNumber }}</h1>
+        <p class="sub">
+          {{ c.type }} claim · policy {{ c.policyNumber }} · reported
+          {{ c.reportedAt | date: 'd MMM y, HH:mm' }}
+        </p>
+      </div>
+      <app-status-badge [status]="c.status" />
+    </header>
+
+    <p class="next" [class.next--attention]="needsAction(c.status)" role="status">
+      <mat-icon>{{
+        needsAction(c.status) ? 'priority_high' : closed(c.status) ? 'task_alt' : 'schedule'
+      }}</mat-icon>
+      {{ nextStep(c.status) }}
+    </p>
+
+    @if (c.openInformationRequest; as req) {
+      <mat-card appearance="outlined" class="request">
+        <mat-card-header>
+          <mat-card-title>The claims team asked</mat-card-title>
+          <mat-card-subtitle>{{ req.requestedAt | date: 'd MMM y, HH:mm' }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <blockquote>{{ req.question }}</blockquote>
+          <form [formGroup]="answerForm" (ngSubmit)="sendAnswer(c)">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Your answer</mat-label>
+              <textarea matInput rows="4" formControlName="answer" maxlength="4000"></textarea>
+              <mat-hint align="end">{{ answer.value.length }} / 4000</mat-hint>
+              @if (answer.hasError('required')) {
+                <mat-error>Please write an answer.</mat-error>
+              }
+            </mat-form-field>
+            @if (answerError(); as err) {
+              <p class="error" role="alert">{{ err.userMessage }}</p>
+            }
+            <button mat-flat-button type="submit" [disabled]="sending()">
+              @if (sending()) {
+                <mat-progress-spinner diameter="18" mode="indeterminate" />
+              }
+              Send answer
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <div class="grid">
+      <mat-card appearance="outlined">
+        <mat-card-header><mat-card-title>Incident</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <dl>
+            <dt>Date</dt>
+            <dd>{{ c.incidentDate | date: 'd MMM y' }}</dd>
+            <dt>Location</dt>
+            <dd>{{ c.incidentLocation }}</dd>
+            <dt>What happened</dt>
+            <dd>{{ c.description }}</dd>
+            <dt>Your estimate</dt>
+            <dd>{{ c.estimatedLossAmount | money: c.currency }}</dd>
+            @if (c.motor; as m) {
+              <dt>Vehicle</dt>
+              <dd>{{ m.vehicleRegistration }}</dd>
+              <dt>Third party involved</dt>
+              <dd>{{ m.thirdPartyInvolved ? 'Yes' : 'No' }}</dd>
+              @if (m.policeReportNumber) {
+                <dt>Police report</dt>
+                <dd>{{ m.policeReportNumber }}</dd>
+              }
+            }
+            @if (c.property; as p) {
+              <dt>Property</dt>
+              <dd>{{ p.propertyAddress }}</dd>
+              <dt>Damage</dt>
+              <dd>{{ p.damageType }}</dd>
+            }
+          </dl>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined">
+        <mat-card-header><mat-card-title>Decision</mat-card-title></mat-card-header>
+        <mat-card-content>
+          @if (c.decisionAt) {
+            <dl>
+              <dt>Decided</dt>
+              <dd>{{ c.decisionAt | date: 'd MMM y' }}</dd>
+              @if (c.settlementAmount !== null) {
+                <dt>Settlement</dt>
+                <dd class="money">{{ c.settlementAmount | money: c.currency }}</dd>
+                <dt>Paid</dt>
+                <dd>{{ c.paidAmount > 0 ? (c.paidAmount | money: c.currency) : 'Not yet' }}</dd>
+              }
+            </dl>
+          } @else {
+            <p class="muted">
+              No decision yet. We aim to decide by {{ c.slaDueAt | date: 'd MMM y' }}.
+            </p>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <section>
+      <h2>Timeline</h2>
+      <ol class="timeline">
+        @for (step of timeline(); track step.at) {
+          <li>
+            <span class="when">{{ step.at | date: 'd MMM y, HH:mm' }}</span>
+            <span class="what">
+              <strong>{{ label(step.to) }}</strong> · {{ who(step.actorRole) }}
+              @if (step.reason) {
+                <span class="reason">{{ step.reason }}</span>
+              }
+            </span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    @if (answeredRequests().length > 0) {
+      <section>
+        <h2>Questions and answers</h2>
+        @for (r of answeredRequests(); track r.id) {
+          <div class="qa">
+            <p><strong>Q:</strong> {{ r.question }}</p>
+            <p>
+              <strong>A:</strong> {{ r.response }}
+              <span class="muted">({{ r.respondedAt | date: 'd MMM y' }})</span>
+            </p>
+          </div>
+        }
+      </section>
+    }
+  }
+</app-page-state>

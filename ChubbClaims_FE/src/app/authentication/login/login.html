@@ -17,7 +17,7 @@
       <app-page-state
         [loading]="users.isLoading()"
         [error]="users.error()"
-        [empty]="(users.value() ?? []).length === 0"
+        [empty]="allUsers().length === 0"
         emptyMessage="No demo users found. Is the API running with seed data?"
         (retry)="users.reload()"
       >

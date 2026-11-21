@@ -1,0 +1,59 @@
+<header class="page-header">
+  <div>
+    <h1>My claims</h1>
+    @if (actionNeeded() > 0) {
+      <p class="callout" role="status">
+        <mat-icon>priority_high</mat-icon>
+        {{ actionNeeded() }} {{ actionNeeded() === 1 ? 'claim needs' : 'claims need' }} information
+        from you.
+      </p>
+    }
+  </div>
+  <a mat-flat-button routerLink="/claimant/claims/new">
+    <mat-icon>add</mat-icon>
+    Report an incident
+  </a>
+</header>
+
+<app-page-state
+  [loading]="claims.isLoading()"
+  [error]="claims.error()"
+  [empty]="rows().length === 0"
+  emptyMessage="You haven't reported any claims yet."
+  (retry)="claims.reload()"
+>
+  <table mat-table [dataSource]="rows()" class="claims">
+    <ng-container matColumnDef="claimNumber">
+      <th mat-header-cell *matHeaderCellDef>Claim</th>
+      <td mat-cell *matCellDef="let c">
+        <a [routerLink]="['/claimant/claims', c.id]" (click)="$event.stopPropagation()">{{
+          c.claimNumber
+        }}</a>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="type">
+      <th mat-header-cell *matHeaderCellDef>Type</th>
+      <td mat-cell *matCellDef="let c">{{ c.type }}</td>
+    </ng-container>
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let c"><app-status-badge [status]="c.status" /></td>
+    </ng-container>
+    <ng-container matColumnDef="nextStep">
+      <th mat-header-cell *matHeaderCellDef>What happens next</th>
+      <td mat-cell *matCellDef="let c" [class.attention]="needsAction(c.status)">
+        {{ nextStep(c.status) }}
+        @if (c.settlementAmount !== null) {
+          <span class="amount">{{ c.settlementAmount | money: c.currency }}</span>
+        }
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="reportedAt">
+      <th mat-header-cell *matHeaderCellDef>Reported</th>
+      <td mat-cell *matCellDef="let c">{{ c.reportedAt | date: 'd MMM y' }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let c; columns: columns" (click)="open(c)" class="row"></tr>
+  </table>
+</app-page-state>
