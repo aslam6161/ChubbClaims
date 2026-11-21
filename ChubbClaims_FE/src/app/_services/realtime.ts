@@ -38,26 +38,38 @@ export class RealtimeService {
 
   async connect(): Promise<void> {
     if (this.connection) return;
-    const connection = new HubConnectionBuilder()
+    const connection = this.createConnection();
+    this.connection = connection;
+    // After a quick sign-out and sign-in, the old connection's late callbacks must not
+    // overwrite the new connection's state.
+    const setState = (s: LiveState) => {
+      if (this.connection === connection) this.state.set(s);
+    };
+
+    connection.on('ClaimUpdated', (m: ClaimUpdatedMessage) => this.claimUpdates.next(m));
+    connection.on('ExposureUpdated', (m: ExposureUpdatedMessage) => this.exposureUpdates.next(m));
+    connection.onreconnecting(() => setState('reconnecting'));
+    connection.onreconnected(() => setState('live'));
+    connection.onclose(() => setState('paused'));
+
+    setState('connecting');
+    try {
+      await connection.start();
+      setState('live');
+    } catch {
+      // Includes a page reload during negotiation: the browser cancels the request and SignalR
+      // logs it to the console. Screens fall back to polling; the app works without push.
+      setState('paused');
+    }
+  }
+
+  /** Separate so a test can supply a fake connection. */
+  protected createConnection(): HubConnection {
+    return new HubConnectionBuilder()
       .withUrl('/hubs/claims', { accessTokenFactory: () => this.auth.token() ?? '' })
       .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
       .configureLogging(LogLevel.Warning)
       .build();
-    this.connection = connection;
-
-    connection.on('ClaimUpdated', (m: ClaimUpdatedMessage) => this.claimUpdates.next(m));
-    connection.on('ExposureUpdated', (m: ExposureUpdatedMessage) => this.exposureUpdates.next(m));
-    connection.onreconnecting(() => this.state.set('reconnecting'));
-    connection.onreconnected(() => this.state.set('live'));
-    connection.onclose(() => this.state.set('paused'));
-
-    this.state.set('connecting');
-    try {
-      await connection.start();
-      this.state.set('live');
-    } catch {
-      this.state.set('paused'); // screens fall back to polling; the app works without push
-    }
   }
 
   async disconnect(): Promise<void> {

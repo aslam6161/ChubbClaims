@@ -6,20 +6,28 @@ Motor and property claims across six APAC markets (MY, SG, HK, TH, ID, AU).
 - **Claims officers** pick up claims in their market, set the reserve, ask for information, approve and settle, or reject.
 - **Managers** see team workload and a near-real-time view of outstanding liability exposure.
 
-**Status:** the backend is complete (all P0 and P1 items). The Angular frontend ([FRONTEND.md](ChubbClaims_FE/FRONTEND.md)) is the next step.
+**Status:** complete. The backend has every P0 and P1 item. The Angular frontend covers both user types end to end, with live updates (all its P0 and P1 items).
+
+| Officer's work queue | Manager's team view: workload and live exposure |
+|---|---|
+| ![Work queue: unassigned claims in SLA order, one overdue](docs/screenshots/officer-queue.png) | ![Team page: officer workload and outstanding exposure per currency](docs/screenshots/manager-team.png) |
+| **Claimant: the claims team asked a question** | **Officer's claim workbench** |
+| ![Claim detail with an open information request](docs/screenshots/claimant-claim-detail.png) | ![Workbench with reserve, request information, approve and reject](docs/screenshots/officer-workbench.png) |
 
 | Document | What it covers |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Components, event flow, claim lifecycle, data model (diagrams) |
 | [docs/decisions.md](docs/decisions.md) | Key decisions, the alternatives and when I would revisit them |
 | [ChubbClaims_BE/BACKEND.md](ChubbClaims_BE/BACKEND.md) | The build spec the backend was built from, updated as decisions changed |
+| [ChubbClaims_FE/README.md](ChubbClaims_FE/README.md) | The web app: screens, how one codebase serves both user types, frontend decisions |
+| [ChubbClaims_FE/FRONTEND.md](ChubbClaims_FE/FRONTEND.md) | The build spec the frontend was built from |
 | [AI_JOURNAL.md](AI_JOURNAL.md) | How I worked with AI: what I asked for, accepted, challenged and overrode, per phase |
 
 ---
 
 ## Run it
 
-Prerequisites: **Docker Desktop**. Nothing else is needed to run it.
+Prerequisites: **Docker Desktop** for the backend, and **Node 22.22+ or 24.15+** for the web app.
 
 ```bash
 git clone https://github.com/aslam6161/ChubbClaims.git
@@ -30,8 +38,19 @@ docker compose up --build   # first run: ~2-3 min (image pulls and build)
 
 The API waits for SQL Server, applies migrations, seeds demo data and starts publishing events to Kafka.
 
+Then, in a second terminal, start the web app:
+
+```bash
+cd ChubbClaims_FE
+npm ci
+npm start                   # http://localhost:4200
+```
+
+Open http://localhost:4200 and pick a demo user. The dev server proxies the API and the SignalR hub, so nothing else needs configuring.
+
 | What | URL |
 |---|---|
+| Web app (after `npm start`) | http://localhost:4200 |
 | API reference (Scalar) | http://localhost:5080/scalar |
 | OpenAPI document | http://localhost:5080/openapi/v1.json |
 | Health | http://localhost:5080/health |
@@ -41,7 +60,7 @@ The API waits for SQL Server, applies migrations, seeds demo data and starts pub
 ### Sign in (development login)
 
 There is no identity provider (out of scope). `POST /api/auth/dev-login` with a seeded email returns a JWT.
-In Scalar: call **dev-login**, copy `accessToken`, click **Authorize** and paste it.
+In the web app, pick a user on the sign-in page. In Scalar: call **dev-login**, copy `accessToken`, click **Authorize** and paste it.
 
 | Email | Role | Market |
 |---|---|---|
@@ -51,10 +70,21 @@ In Scalar: call **dev-login**, copy `accessToken`, click **Authorize** and paste
 | `officer.sg@demo.local` | Claims officer | SG |
 | `manager.my@demo.local` | Claims manager | MY (exposure covers all markets) |
 
+There is also one claimant each in HK, TH, ID and AU (`claimant.hk@demo.local` and so on).
 Seed data: 13 claims across all six markets and every status, including overdue claims and one waiting on the claimant.
 Only MY and SG have staff, so the HK, TH, ID and AU claims stay unassigned. They are there so exposure covers six currencies.
 
-### A five-minute tour
+### A five-minute tour in the browser
+
+Open two browser windows side by side. Each tab keeps its own sign-in, so they can be different users.
+
+1. **Claimant** (Aisyah Rahman), window 1: **My claims** says in plain words what happens next. `CLM-MY-2026-000004` has a question from the claims team to answer. Leave `CLM-MY-2026-000003` open.
+2. **Officer** (Hafiz Ismail), window 2: the work queue shows unassigned MY claims in SLA order, with one overdue. Open **My claims** → `CLM-MY-2026-000003` → **Approve** with a settlement amount.
+   Window 1 switches to **Approved** by itself about a second later.
+3. **Claimant**: **Report an incident** on `POL-MY-M-0001`. It appears in the officer's unassigned queue without a refresh.
+4. **Manager** (Farah Abdullah): **Team** shows workload and outstanding exposure per currency. The exposure updates within a second or two of each claim event, via Kafka.
+
+### The same tour against the API
 
 1. **Claimant** (`claimant.my`): `GET /api/policies/mine` → `POST /api/claims` on `POL-MY-M-0001` → 201 with a claim number.
    Try `POL-MY-M-0000` (expired, 422) or `POL-SG-M-0001` (someone else's, 404).
@@ -79,8 +109,9 @@ Stop the `api` container first (`docker compose stop api`), since both use port 
 
 | Suite | How | Count |
 |---|---|---|
-| Unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 203 |
-| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR) | [scripts/smoke](scripts/smoke/README.md) | 80 checks in 4 scripts |
+| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 206 |
+| Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 64 |
+| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR); need Python 3 and Node | [scripts/smoke](scripts/smoke/README.md) | 80 checks in 4 scripts |
 
 Unit tests cover the claim state machine and every business rule, plus:
 - service orchestration and visibility
@@ -93,6 +124,9 @@ The smoke tests also cover things unit tests can't:
 - **Replaying the whole topic** (consumer offsets reset to 0): every event is skipped as a duplicate and exposure is unchanged
 - **Stopping Kafka:** claims are still accepted, and events drain from the outbox when Kafka returns
 - **Push isolation:** another market's officer and another claimant receive nothing
+
+Frontend tests cover the guards, interceptors, the allowed-action table, FNOL validation, realtime reload and polling, and component tests for the claimant list, the work queue (including a 409) and the Team page.
+Each web phase was also checked in a real browser against the running stack: both user types end to end, a decision in one browser updating another, and every screen at phone width.
 
 ---
 
@@ -141,8 +175,16 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | P2 | Approval authority limit (manager must approve above a threshold) | ✂️ cut |
 | P2 | Integration tests with WebApplicationFactory + Testcontainers | ✂️ cut (end-to-end smoke scripts instead) |
 | P2 | Dead-letter topic for poison messages | ✂️ cut (invalid messages are logged and skipped; handler failures retry) |
+| Web P0 | Dev sign-in, interceptors, role-guarded lazy areas, a home per role | ✅ |
+| Web P0 | Claimant: report an incident (FNOL), my claims, claim detail, answer an information request | ✅ |
+| Web P0 | Officer: work queue (overdue, 409 on pick-up), claim workbench with every action | ✅ |
+| Web P0 | Loading, empty and error states; ProblemDetails shown in plain words; unit tests | ✅ |
+| Web P1 | SignalR live updates with a polling fallback; Team page (workload, manager exposure) | ✅ |
+| Web P2 | Committed Playwright end-to-end suite | ✂️ cut (browser checks were run per phase but not committed) |
+| Web P2 | nginx container for the web app in docker compose | ✂️ cut (`npm start` runs it) |
+| Web P2 | Notification bell | ✂️ cut (the API stores notifications; the UI doesn't show them yet) |
 
-**Out of scope by design:** real identity provider, document and photo uploads, payments integration, fraud scoring, real policy-admin integration (policies are seeded), FX conversion (exposure is reported per currency), email and SMS, multiple languages, per-market regulatory rules.
+**Out of scope by design:** real identity provider, document and photo uploads, payments integration, fraud scoring, real policy-admin integration (policies are seeded), FX conversion (exposure is reported per currency), email and SMS, multiple languages, per-market regulatory rules, layouts designed for mobile (the web app is responsive, not mobile-first), offline support.
 
 **Known limitations I would fix next:**
 - Paging for the work queue and notifications (capped at 200 and 50 rows).
@@ -167,11 +209,13 @@ ChubbClaims_BE/
   ChubbClaims.Repository     EF Core, migrations, seed, transactional outbox
   ChubbClaims.Messaging      outbox publisher, Kafka consumers, event contract
   ChubbClaims.Tests
-ChubbClaims_FE/              Angular frontend (next)
+ChubbClaims_FE/              Angular 22 web app for claimants and claims staff (see its README)
+docs/screenshots/            the screenshots above
 ```
 
 ## Time and AI use
 
 The backend was built in about 1 h 45 min of implementation, from the first code commit (10:15) to the last backend merge (11:55). The specs were planned before that.
+The frontend followed in six phases of its own, each reviewed and merged in the same way.
 Development used Claude Code throughout. [AI_JOURNAL.md](AI_JOURNAL.md) records each phase: what I asked for, what I accepted, and where I challenged or overrode the AI. Examples include the read-modify-write race in the exposure projector, a nullable enum that leaked into the OpenAPI contract, and "overdue" flagging claims that were already decided.
 Every phase was built on its own branch, reviewed, and merged with `--no-ff`, so `git log --graph` shows the steps.

@@ -1,1 +1,24 @@
-/* You can add global styles to this file, and also import other style files */
+/* Responsive basics shared by every screen (no mobile-specific layouts: out of scope). */
+
+/* A wide table scrolls inside its own box; the page itself never scrolls sideways. */
+.table-scroll {
+  overflow-x: auto;
+  /* Contain visually-hidden (absolutely positioned) text in cells too, or it widens the page. */
+  position: relative;
+}
+
+/* Claim numbers are identifiers: keep them on one line. */
+td.mat-column-claimNumber {
+  white-space: nowrap;
+}
+
+h1 {
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+}

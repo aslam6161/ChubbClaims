@@ -16,55 +16,57 @@
         </p>
       </header>
 
-      <table mat-table [dataSource]="t.officers" class="table">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Officer</th>
-          <td mat-cell *matCellDef="let o">
-            <strong>{{ o.name }}</strong>
-            <span class="muted">{{ roleLabel(o.role) }}</span>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="open">
-          <th mat-header-cell *matHeaderCellDef class="num">Open</th>
-          <td mat-cell *matCellDef="let o" class="num">{{ o.openClaims }}</td>
-        </ng-container>
-        <ng-container matColumnDef="underReview">
-          <th mat-header-cell *matHeaderCellDef class="num">Under review</th>
-          <td mat-cell *matCellDef="let o" class="num">{{ o.underReview }}</td>
-        </ng-container>
-        <ng-container matColumnDef="awaitingClaimant">
-          <th mat-header-cell *matHeaderCellDef class="num">Waiting on claimant</th>
-          <td mat-cell *matCellDef="let o" class="num">{{ o.awaitingClaimant }}</td>
-        </ng-container>
-        <ng-container matColumnDef="approved">
-          <th mat-header-cell *matHeaderCellDef class="num">Approved, to pay</th>
-          <td mat-cell *matCellDef="let o" class="num">{{ o.approvedAwaitingPayment }}</td>
-        </ng-container>
-        <ng-container matColumnDef="overdue">
-          <th mat-header-cell *matHeaderCellDef class="num">Overdue</th>
-          <td mat-cell *matCellDef="let o" class="num" [class.bad]="o.overdue > 0">
-            {{ o.overdue }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="oldest">
-          <th mat-header-cell *matHeaderCellDef class="num">Oldest open</th>
-          <td mat-cell *matCellDef="let o" class="num">
-            {{ o.oldestOpenAgeDays === null ? '—' : o.oldestOpenAgeDays + ' d' }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="decisions">
-          <th mat-header-cell *matHeaderCellDef class="num">Decisions (7 d)</th>
-          <td mat-cell *matCellDef="let o" class="num">{{ o.decisionsLast7Days }}</td>
-        </ng-container>
-        <ng-container matColumnDef="avgDays">
-          <th mat-header-cell *matHeaderCellDef class="num">Avg days to decide (30 d)</th>
-          <td mat-cell *matCellDef="let o" class="num">
-            {{ o.averageDaysToDecision === null ? '—' : o.averageDaysToDecision }}
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="workloadColumns"></tr>
-        <tr mat-row *matRowDef="let o; columns: workloadColumns"></tr>
-      </table>
+      <div class="table-scroll">
+        <table mat-table [dataSource]="t.officers" class="table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Officer</th>
+            <td mat-cell *matCellDef="let o">
+              <strong>{{ o.name }}</strong>
+              <span class="muted">{{ roleLabel(o.role) }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="open">
+            <th mat-header-cell *matHeaderCellDef class="num">Open</th>
+            <td mat-cell *matCellDef="let o" class="num">{{ o.openClaims }}</td>
+          </ng-container>
+          <ng-container matColumnDef="underReview">
+            <th mat-header-cell *matHeaderCellDef class="num">Under review</th>
+            <td mat-cell *matCellDef="let o" class="num">{{ o.underReview }}</td>
+          </ng-container>
+          <ng-container matColumnDef="awaitingClaimant">
+            <th mat-header-cell *matHeaderCellDef class="num">Waiting on claimant</th>
+            <td mat-cell *matCellDef="let o" class="num">{{ o.awaitingClaimant }}</td>
+          </ng-container>
+          <ng-container matColumnDef="approved">
+            <th mat-header-cell *matHeaderCellDef class="num">Approved, to pay</th>
+            <td mat-cell *matCellDef="let o" class="num">{{ o.approvedAwaitingPayment }}</td>
+          </ng-container>
+          <ng-container matColumnDef="overdue">
+            <th mat-header-cell *matHeaderCellDef class="num">Overdue</th>
+            <td mat-cell *matCellDef="let o" class="num" [class.bad]="o.overdue > 0">
+              {{ o.overdue }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="oldest">
+            <th mat-header-cell *matHeaderCellDef class="num">Oldest open</th>
+            <td mat-cell *matCellDef="let o" class="num">
+              {{ o.oldestOpenAgeDays === null ? '—' : o.oldestOpenAgeDays + ' d' }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="decisions">
+            <th mat-header-cell *matHeaderCellDef class="num">Decisions (7 d)</th>
+            <td mat-cell *matCellDef="let o" class="num">{{ o.decisionsLast7Days }}</td>
+          </ng-container>
+          <ng-container matColumnDef="avgDays">
+            <th mat-header-cell *matHeaderCellDef class="num">Avg days to decide (30 d)</th>
+            <td mat-cell *matCellDef="let o" class="num">
+              {{ o.averageDaysToDecision === null ? '—' : o.averageDaysToDecision }}
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="workloadColumns"></tr>
+          <tr mat-row *matRowDef="let o; columns: workloadColumns"></tr>
+        </table>
+      </div>
     }
   </app-page-state>
 </section>
@@ -98,32 +100,34 @@
           }
         </div>
 
-        <table mat-table [dataSource]="r.rows" class="table">
-          <ng-container matColumnDef="market">
-            <th mat-header-cell *matHeaderCellDef>Market</th>
-            <td mat-cell *matCellDef="let e">{{ e.market }}</td>
-          </ng-container>
-          <ng-container matColumnDef="claimType">
-            <th mat-header-cell *matHeaderCellDef>Type</th>
-            <td mat-cell *matCellDef="let e">{{ e.claimType }}</td>
-          </ng-container>
-          <ng-container matColumnDef="open">
-            <th mat-header-cell *matHeaderCellDef class="num">Open claims</th>
-            <td mat-cell *matCellDef="let e" class="num">{{ e.openClaims }}</td>
-          </ng-container>
-          <ng-container matColumnDef="outstanding">
-            <th mat-header-cell *matHeaderCellDef class="num">Outstanding</th>
-            <td mat-cell *matCellDef="let e" class="num">
-              {{ e.outstandingReserve | money: e.currency }}
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="updated">
-            <th mat-header-cell *matHeaderCellDef>Updated</th>
-            <td mat-cell *matCellDef="let e" class="muted">{{ ago(e.lastEventAt) }}</td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="exposureColumns"></tr>
-          <tr mat-row *matRowDef="let e; columns: exposureColumns"></tr>
-        </table>
+        <div class="table-scroll">
+          <table mat-table [dataSource]="r.rows" class="table">
+            <ng-container matColumnDef="market">
+              <th mat-header-cell *matHeaderCellDef>Market</th>
+              <td mat-cell *matCellDef="let e">{{ e.market }}</td>
+            </ng-container>
+            <ng-container matColumnDef="claimType">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let e">{{ e.claimType }}</td>
+            </ng-container>
+            <ng-container matColumnDef="open">
+              <th mat-header-cell *matHeaderCellDef class="num">Open claims</th>
+              <td mat-cell *matCellDef="let e" class="num">{{ e.openClaims }}</td>
+            </ng-container>
+            <ng-container matColumnDef="outstanding">
+              <th mat-header-cell *matHeaderCellDef class="num">Outstanding</th>
+              <td mat-cell *matCellDef="let e" class="num">
+                {{ e.outstandingReserve | money: e.currency }}
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="updated">
+              <th mat-header-cell *matHeaderCellDef>Updated</th>
+              <td mat-cell *matCellDef="let e" class="muted">{{ ago(e.lastEventAt) }}</td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="exposureColumns"></tr>
+            <tr mat-row *matRowDef="let e; columns: exposureColumns"></tr>
+          </table>
+        </div>
       }
     </app-page-state>
   </section>

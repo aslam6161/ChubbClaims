@@ -39,3 +39,9 @@ td.attention {
     display: none;
   }
 }
+/* Phones: "what happens next" already says the status in words, and it's what a claimant needs. */
+@media (max-width: 480px) {
+  .mat-column-status {
+    display: none;
+  }
+}
