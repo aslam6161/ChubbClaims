@@ -378,6 +378,11 @@ Base path `/api`. All errors are **ProblemDetails**. Auth: `Authorization: Beare
 
 ### Officer (`ClaimsOfficer`, `ClaimsManager`)
 - `GET  /api/work-queue?view=unassigned|mine&status=&sort=sla|reported`: scoped to the officer's market. Each row has claimNumber, type, status, reportedAt, ageDays, slaDueAt, isOverdue, waitingOn (`Officer` | `Claimant`), outstandingReserve, currency
+  - `unassigned` = claims in my market with no assignee; `mine` = my claims, **open only** unless `status` is given (so closed claims can still be found). Max 200 rows (paging is a "more time" item)
+  - `isOverdue` = SLA date passed **without a decision** (approved claims awaiting payment are not overdue); the SLA clock keeps running while waiting on the claimant (pausing it is a "more time" item)
+  - `waitingOn` = `Officer` (Submitted, UnderReview, Approved), `Claimant` (AwaitingInformation), `Nobody` (closed). Rules live in `Domain/Rules/ClaimProgress`
+  - Projected in SQL (no aggregate loading); outstanding reserve computed in the query with the same rule as `Claim.OutstandingReserve`
+- All officer actions return **204**; the UI reloads the claim (the server can reject, so no optimistic updates)
 - `POST /api/claims/{id}/pick-up`
 - `PUT  /api/claims/{id}/reserve` `{ amount, reason }`
 - `POST /api/claims/{id}/information-requests` `{ question }`
