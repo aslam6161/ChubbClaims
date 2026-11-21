@@ -46,3 +46,14 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Challenged: correlation id is client input that goes into logs and Kafka headers, so the middleware only accepts `[A-Za-z0-9._-]{1,64}` and replaces anything else (log-injection guard). Covered by tests.
 - Challenged: unknown exceptions must not leak details; the 500 ProblemDetails has no `detail`. Covered by a test that a secret in the exception message never reaches the response.
 - Overrode: removed the template's WeatherForecast sample and HTTPS redirection (HTTP only behind compose/dev proxy). Did not add a Serilog `CorrelationIdEnricher` class (in the spec layout): `LogContext.PushProperty` in the middleware already covers every log line in the request, so the extra class would be dead weight.
+
+### 2026-11-21 · Phase 2 · Domain: claim aggregate and state machine
+- Asked: Claim aggregate, lifecycle state machine, events, value objects and domain tests per BACKEND.md §5 and §11.
+- Accepted: transition table as data (`ClaimTransitions`) instead of if/else per method; one aggregate method per task (PickUp, RequestInformation, …); audit rows (status, reserve) written inside the aggregate; events carry everything consumers need; time passed in, never read from the clock.
+- Challenged: who-may-act rules. The spec put them in the application layer; I asked for them in the aggregate (`Actor` passed to every method) so an endpoint can never forget a check. Added `ClaimAccessDeniedException` → 403.
+- Challenged: check order. Transition first (409), then actor (403), then input (422): a second officer picking up an already picked-up claim must get 409 "already picked up", not 403.
+- Challenged: "incident date not in the future" compared to the UTC date would reject a legitimate same-morning claim in Sydney (UTC+11). Compared against the market's local date instead; test covers Sydney morning and KL late evening.
+- Challenged: do the tests bite? Ran two mutations: (1) re-introduced the exposure drift bug in `Approve`, (2) removed the market check. Each was caught by 2 failing tests; restored, 147/147 green.
+- Overrode: dropped the `Money` value object from the spec: one currency per claim (from the policy) makes it redundant. Dropped Domain `Settings/` for now: config POCOs arrive with the phases that bind them.
+- Added: an "exposure consistency" test: the sum of event deltas a claim emits must equal its outstanding reserve (zero once closed). It locks in the fix for the drift bug found in spec review.
+
