@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using ChubbClaims.Messaging.Realtime;
 using ChubbClaims.Presentation.Hubs;
 
@@ -10,8 +9,7 @@ public static class RealtimeServiceExtensions
     public static IServiceCollection AddRealtime(this IServiceCollection services)
     {
         services.AddSignalR()
-            // Same enum format as the REST API ("Approved", not 4).
-            .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            .AddJsonProtocol(o => ApiJson.Configure(o.PayloadSerializerOptions)); // same format as the REST API
         services.AddSingleton<IRealtimePush, SignalRRealtimePush>();
         return services;
     }

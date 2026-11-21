@@ -42,6 +42,7 @@ public sealed class ClaimsController(IClaimService claims) : BaseApiController
     [HttpGet("{id:guid}")]
     [Tags("Claimant", "Staff")]
     [EndpointSummary("Claim detail")]
+    [ProducesResponseType<ClaimDetailResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     public Task<ClaimDetailResponse> GetById(Guid id, CancellationToken ct) => claims.GetAsync(id, ct);
 
