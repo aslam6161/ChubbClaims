@@ -8,9 +8,10 @@
   background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface);
 }
+/* Explicit blue, not the (orange) primary colour, so it can't be mistaken for "attention". */
 .badge[data-tone='progress'] {
-  background: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
+  background: #dbe7ff;
+  color: #0b3d91;
 }
 .badge[data-tone='attention'] {
   background: #ffe8b3;
