@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ChubbClaims.Domain.Enums;
 using ChubbClaims.Domain.Settings;
 using ChubbClaims.Presentation.Middleware;
@@ -13,7 +14,9 @@ public static class PresentationServiceExtensions
     /// <summary>HTTP-layer services: controllers, ProblemDetails, OpenAPI, CORS, plus host-level services (clock, correlation, settings).</summary>
     public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddControllers();
+        // Enums as strings in JSON ("Motor", not 1): readable for the UI and stable if enum order changes.
+        services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter())); // OpenAPI schemas
         services.AddHttpContextAccessor();
         services.AddScoped<ICorrelationContext, HttpCorrelationContext>();
         services.AddSingleton(TimeProvider.System);
