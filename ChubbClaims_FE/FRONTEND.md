@@ -182,6 +182,7 @@ Use **component input binding** for route params (`withComponentInputBinding()`)
 - **Commands are not optimistic.** The server can reject them (409/422), so the UI waits for the response, then reloads.
 - **Realtime (P1):** `RealtimeService` connects to `/hubs/claims` with the JWT. On `ClaimUpdated(claimId)`: if the claim is on screen, `reload()` it; the queue reloads too. Push is only a **hint**; data always comes from REST.
 - **Fallback:** if the hub is disconnected, poll the visible claim/queue every 30 s and show a small "live updates paused" indicator.
+- **As built (phase 5):** `RealtimeService` (one connection per signed-in session, opened by the area layout, closed on sign-out) + `reloadOnClaimUpdates(resource, filter)` / `reloadOnExposureUpdates(resource)` called in each screen's constructor: they reload on a matching push, poll every 30 s while not live, and clean up with the component. The SignalR message types are hand-written in `_models/realtime-messages.ts` (the hub isn't in OpenAPI) and mirror `IRealtimePush.cs`.
 - **Exposure numbers are eventually consistent** (built from Kafka events): show the "updated X ago" timestamp instead of pretending they're instant.
 
 ---

@@ -48,5 +48,6 @@ describe('MoneyPipe', () => {
     // Intl separates code and amount with a non-breaking space
     expect(pipe.transform(5800, 'MYR')).toBe('MYR 5,800.00');
     expect(pipe.transform(null, 'MYR')).toBe('—');
+    expect(pipe.transform(20000000, 'IDR')).toBe('IDR 20,000,000.00'); // same in Node and Chromium
   });
 });

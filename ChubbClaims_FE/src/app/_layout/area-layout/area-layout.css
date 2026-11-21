@@ -45,3 +45,26 @@ nav a.active {
     display: none;
   }
 }
+.live {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--mat-sys-on-surface-variant);
+  margin-right: 0.75rem;
+}
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--mat-sys-outline);
+}
+.live[data-state='live'] .dot {
+  background: #1e8e3e;
+}
+.live[data-state='paused'] {
+  color: #8a4b00;
+}
+.live[data-state='paused'] .dot {
+  background: #e0a800;
+}
