@@ -1,4 +1,6 @@
 using System.Text.Json;
+using ChubbClaims.Domain.Enums;
+using ChubbClaims.Domain.Exceptions;
 using ChubbClaims.Presentation.Middleware;
 using ChubbClaims.Service.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -41,6 +43,31 @@ public class ExceptionToProblemDetailsHandlerTests
         status.ShouldBe(expectedStatus);
         body.GetProperty("status").GetInt32().ShouldBe(expectedStatus);
         body.GetProperty("detail").GetString().ShouldBe("Claim CLM-MY-2026-000001 was changed");
+    }
+
+    [Fact]
+    public async Task Invalid_claim_transition_maps_to_409()
+    {
+        var (status, body) = await Handle(new InvalidClaimTransitionException(ClaimStatus.UnderReview, ClaimAction.PickUp));
+
+        status.ShouldBe(409);
+        body.GetProperty("detail").GetString().ShouldBe("Cannot PickUp a claim that is UnderReview.");
+    }
+
+    [Fact]
+    public async Task Domain_validation_maps_to_422()
+    {
+        var (status, _) = await Handle(new DomainValidationException("Reserve cannot be negative."));
+
+        status.ShouldBe(422);
+    }
+
+    [Fact]
+    public async Task Claim_access_denied_maps_to_403()
+    {
+        var (status, _) = await Handle(new ClaimAccessDeniedException("Only the officer assigned to this claim can do this."));
+
+        status.ShouldBe(403);
     }
 
     [Fact]

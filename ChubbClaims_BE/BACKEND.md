@@ -146,16 +146,16 @@ ChubbClaims/                                   (repo root)
       Migrations/
       DependencyInjection.cs                   AddRepository(connectionString)
     ChubbClaims.Domain/                        pure C#, no package references
-      Entity/                                  BaseEntity, Claim (aggregate root), InformationRequest, ClaimStatusChange,
-                                               ReserveChange, ClaimNote, Policy, User
-      ValueObjects/                            Money, MotorDetails, PropertyDetails, ClaimNumber
+      Entity/                                  BaseEntity, AggregateRoot, Claim (aggregate root), ClaimChildren (InformationRequest,
+                                               ClaimStatusChange, ReserveChange, ClaimNote), Policy, User
+      ValueObjects/                            Actor, IncidentReport, MotorDetails, PropertyDetails, ClaimNumber
       Enums/                                   ClaimStatus, ClaimType, ClaimAction, UserRole, DamageType, Priority, Market
-      Constants/                               Markets (code → currency), Roles, AuthorizationPolicyNames
-      Settings/                                ReserveSettings, SlaSettings, JwtSettings (POCO options, bound in API)
+      Constants/                               Markets (currency + time zone per market)
       Events/                                  IDomainEvent + ClaimSubmitted, ClaimPickedUp, ReserveAdjusted, …
       ReadModels/                              ExposureByMarket, Notification, ProcessedEvent, OutboxMessage
-      Exceptions/                              DomainException, InvalidClaimTransitionException, DomainValidationException
-      Rules/                                   ClaimTransitions (allowed transition table)
+      Exceptions/                              DomainException, InvalidClaimTransitionException (409), DomainValidationException (422),
+                                               ClaimAccessDeniedException (403)
+      Rules/                                   ClaimTransitions (allowed transition table), ClaimSubmissionRules
     ChubbClaims.Messaging/                     Kafka (Confluent.Kafka)
       Settings/                                KafkaSettings
       Contracts/                               EventEnvelope, event payload records (the Kafka contract, §6)
@@ -232,6 +232,11 @@ API host is **`ChubbClaims.Presentation`** with **Controllers** (`Controllers/` 
 **User** (seeded, dev only): Id, Name, Email, Role (`Claimant` | `ClaimsOfficer` | `ClaimsManager`), Market (staff only)
 
 **Money rule:** all amounts are `decimal` with an explicit currency. **Never `double`/`float`.**
+No separate `Money` type: a claim has exactly one `Currency` (from its policy) and every amount on it is in that currency, so the aggregate enforces the single-currency rule; a `Money` wrapper would add mapping cost without preventing any bug here.
+
+**Actor:** every aggregate method takes an `Actor(UserId, Role, Market)` so ownership (claimant owns claim), market scoping and assigned-officer rules are enforced in the domain, not only in endpoints. Check order in every method: transition (409) → actor (403) → input (422).
+
+**Incident date vs "today":** compared with the **market's local date** (`Markets.LocalDate`), not UTC. All APAC markets are ahead of UTC, so a same-day claim in Sydney at 08:00 would otherwise be rejected as "in the future".
 
 ### 5.2 Lifecycle state machine
 
