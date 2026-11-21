@@ -133,7 +133,6 @@ ChubbClaims/                                   (repo root)
       DTOs/                                    Claims/, WorkQueue/, Team/, Reports/, Auth/ (request/response records)
       Exceptions/                              NotFoundException, ForbiddenException, ConflictException (application-level)
       Helper/                                  manual mapping extension methods (ClaimMappings, …; no AutoMapper)
-      Projections/                             ExposureProjection (pure delta logic, unit tested)
       DependencyInjection.cs                   AddServices()
     ChubbClaims.Repository/                    persistence (EF Core 10 + SQL Server)
       DataContext.cs                           DataContext (EF Core DbContext, claim number sequence, conventions)
@@ -161,11 +160,13 @@ ChubbClaims/                                   (repo root)
     ChubbClaims.Messaging/                     Kafka (Confluent.Kafka)
       Settings/                                KafkaSettings
       Contracts/                               EventEnvelope, event payload records (the Kafka contract, §6)
-      Producers/                               KafkaEventProducer
-      Publishers/                              OutboxPublisherService (BackgroundService)
+      Producers/                               KafkaEventProducer (Acks=All, idempotent; key = claimId; headers event-type, event-id, correlation-id)
+      Publishers/                              OutboxPublisher (one pass, stops at first failure to keep order) + OutboxPublisherService (BackgroundService)
+      Projections/                             ExposureProjection (pure delta rules, unit tested; here, not in Service, because
+                                               Messaging may only reference Repository and Domain)
       Consumers/                               KafkaConsumerBase (commit-after-process, idempotency),
                                                ExposureProjectorConsumer, RealtimeNotifierConsumer (P1)
-      Topics/                                  TopicInitializer (creates claims.events.v1 with 3 partitions)
+      Topics/                                  KafkaTopicInitializer (creates claims.events.v1 with 3 partitions; retries, never blocks API startup)
       DependencyInjection.cs                   AddMessaging(config)
     ChubbClaims.Tests/                         one test project, folders per area (Bento_BE style)
       Domain/                                  state machine + business rules
@@ -339,6 +340,12 @@ Deltas are **only safe because the consumer is idempotent** (`ProcessedEvents`).
 **Exposure is reported per currency. There is no FX conversion** (deliberate; more time: reporting currency + dated FX rate snapshots).
 More time: a rebuild job that replays the topic or recomputes from the Claims table to fix drift.
 
+**Implementation notes (Phase 6):**
+- Idempotency: `ExposureRepository.ApplyOnceAsync` runs in one transaction: skip if `(ConsumerGroup, EventId)` exists, else atomic `UPDATE ... SET x = x + delta` (no read-modify-write, safe with several projector instances), insert the row if missing, insert `ProcessedEvents`. The `ProcessedEvents` primary key is the final guard.
+- Consumer failures: a message that is not a valid envelope is logged and skipped (it can never succeed); a handler failure (e.g. DB down) is retried with backoff and blocks that partition, so nothing is lost or applied out of order. Dead-letter topic is P2.
+- Publisher: at-least-once. If marking a message as published fails after Kafka acknowledged it, it is sent again and consumers drop the duplicate. Several API instances would double-publish (still correct, just wasteful); row locking (`UPDLOCK, READPAST`) is a "more time" item.
+- Kafka down: FNOL and officer actions keep working (201/204); events wait in the outbox and drain when Kafka returns (verified).
+
 **Notifications** (written by `RealtimeNotifier`, P1): UserId, ClaimId, Message, CreatedAt, ReadAt?
 
 **Why a projection for exposure but plain indexed queries for the work queue?**
@@ -355,7 +362,7 @@ More time: a rebuild job that replays the topic or recomputes from the Claims ta
 | Exposure | Every reserve-affecting event | Frequent, portfolio-wide aggregate | Event-fed projection `ExposureByMarket` |
 | Audit / history | Append-only on every transition | Rare, per claim | Child tables, loaded only on claim detail |
 
-Indexes: `Claims(Status, Market)`, `Claims(AssignedOfficerId, Status)`, `Claims(ClaimantId)`, `Claims(SlaDueAt)`, `OutboxMessages(ProcessedAt, OccurredAt)`.
+Indexes: `Claims(Status, Market)`, `Claims(AssignedOfficerId, Status)`, `Claims(ClaimantId)`, `Claims(SlaDueAt)`, `OutboxMessages(ProcessedAt, Sequence)` (Sequence = identity column: strict publish order).
 
 ---
 

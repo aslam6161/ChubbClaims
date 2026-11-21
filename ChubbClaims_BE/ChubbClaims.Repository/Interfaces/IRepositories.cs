@@ -1,5 +1,7 @@
 using ChubbClaims.Domain.Entity;
 using ChubbClaims.Domain.Enums;
+using ChubbClaims.Domain.ReadModels;
+using ChubbClaims.Repository.Outbox;
 
 namespace ChubbClaims.Repository.Interfaces;
 
@@ -64,3 +66,24 @@ public sealed record WorkQueueRow(
     Guid? AssignedOfficerId,
     decimal OutstandingReserve,
     string Currency);
+
+public interface IOutboxRepository
+{
+    /// <summary>Unpublished messages in insertion order (tracked, so they can be marked and saved).</summary>
+    Task<IReadOnlyList<OutboxMessage>> GetUnpublishedAsync(int take, CancellationToken ct);
+}
+
+public interface IExposureRepository
+{
+    /// <summary>
+    /// Applies an exposure delta exactly once per (consumer group, event id): the read-model update
+    /// and the ProcessedEvents row commit in one transaction. Returns false if it was already applied.
+    /// </summary>
+    Task<bool> ApplyOnceAsync(string consumerGroup, Guid eventId, ExposureKey key, ExposureDelta delta, DateTimeOffset eventAt, CancellationToken ct);
+
+    Task<IReadOnlyList<ExposureByMarket>> GetAllAsync(CancellationToken ct);
+}
+
+public sealed record ExposureKey(Market Market, string Currency, ClaimType ClaimType);
+
+public sealed record ExposureDelta(int OpenClaims, decimal OutstandingReserve);

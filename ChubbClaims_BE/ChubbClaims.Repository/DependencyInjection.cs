@@ -26,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<IPolicyRepository, PolicyRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<IExposureRepository, ExposureRepository>();
         services.AddScoped<DevDataSeeder>();
         return services;
     }

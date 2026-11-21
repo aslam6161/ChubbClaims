@@ -2,6 +2,7 @@ using ChubbClaims.Domain.Enums;
 using ChubbClaims.Service.DTOs.Auth;
 using ChubbClaims.Service.DTOs.Claims;
 using ChubbClaims.Service.DTOs.Policies;
+using ChubbClaims.Service.DTOs.Reports;
 using ChubbClaims.Service.DTOs.WorkQueue;
 
 namespace ChubbClaims.Service.Interfaces;
@@ -46,6 +47,11 @@ public interface IClaimService
     Task SettleAsync(Guid claimId, CancellationToken ct);
     Task RejectAsync(Guid claimId, RejectClaimRequest request, CancellationToken ct);
     Task AddNoteAsync(Guid claimId, AddNoteRequest request, CancellationToken ct);
+}
+
+public interface IExposureService
+{
+    Task<ExposureReportResponse> GetAsync(CancellationToken ct);
 }
 
 public interface IWorkQueueService

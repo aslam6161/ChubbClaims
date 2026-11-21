@@ -1,5 +1,6 @@
 using ChubbClaims.Domain.Entity;
 using ChubbClaims.Domain.Enums;
+using ChubbClaims.Domain.ReadModels;
 using ChubbClaims.Repository.Outbox;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,8 @@ public sealed class DataContext(DbContextOptions<DataContext> options) : DbConte
     public DbSet<Policy> Policies => Set<Policy>();
     public DbSet<User> Users => Set<User>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ExposureByMarket> ExposureByMarket => Set<ExposureByMarket>();
+    public DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
