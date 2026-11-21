@@ -346,7 +346,11 @@ More time: a rebuild job that replays the topic or recomputes from the Claims ta
 - Publisher: at-least-once. If marking a message as published fails after Kafka acknowledged it, it is sent again and consumers drop the duplicate. Several API instances would double-publish (still correct, just wasteful); row locking (`UPDLOCK, READPAST`) is a "more time" item.
 - Kafka down: FNOL and officer actions keep working (201/204); events wait in the outbox and drain when Kafka returns (verified).
 
-**Notifications** (written by `RealtimeNotifier`, P1): UserId, ClaimId, Message, CreatedAt, ReadAt?
+**Notifications** (written by `RealtimeNotifierConsumer`, group `realtime-notifier`): Id, UserId, ClaimId, ClaimNumber, Message (500), CreatedAt, ReadAt?; index (UserId, CreatedAt).
+- Claimant is told: received (with decision target date), being reviewed, information needed (with the question), approved (amount), paid (amount), not approved (reason). **Never reserve changes** (internal).
+- Assigned officer is told: the claimant answered.
+- Stored exactly once (same `ProcessedEvents` guard as exposure), then a `ClaimUpdated` push. Events older than `Kafka:NotificationMaxAgeMinutes` (24 h) are skipped: no notification storm after a replay or for seeded history.
+- Event contract additions (additive, still v1): envelope `claimantId`; `InformationProvided.data.assignedOfficerId`. Consumers treat both as optional (older messages lack them).
 
 **Why a projection for exposure but plain indexed queries for the work queue?**
 - The work queue is a filtered, per-officer read on a few indexed columns, so the write DB with indexes is fine.
@@ -401,12 +405,15 @@ Base path `/api`. All errors are **ProblemDetails**. Auth: `Authorization: Beare
 Task-based endpoints (not `PATCH status`) because each action has its own rules, its own authorization, and its own event. Defend this.
 
 ### Team and reporting
-- `GET /api/team/workload` (P1, `Staff`: officers and managers, scoped to their market): per officer in the market: open count by status, awaiting-claimant count, overdue count, oldest open age, decisions in the last 7 days, average days to decision
+- `GET /api/team/workload` (P1, `Staff`: officers and managers, scoped to their market): per officer in the market: open count by status, awaiting-claimant count, overdue count, oldest open age, decisions in the last 7 days, average days to decision (decisions in the last 30 days); plus the market's unassigned open count. Officers with overdue work first. Computed from a narrow query (assigned claims that are open or decided in 30 days); would become a projection at scale
+- `GET /api/notifications` (any signed-in user: latest 50 + unread count), `POST /api/notifications/{id}/read` (404 if not yours), `POST /api/notifications/read-all`
 - `GET /api/reports/exposure` (`ManagerOnly`): from `ExposureByMarket`, grouped by market/currency/type, with `lastEventAt` so the UI can show freshness
 
 ### Realtime (P1)
 - SignalR hub `/hubs/claims` (JWT via `access_token` query string for WebSockets)
-- Server-to-client messages: `ClaimUpdated { claimId, status }` (to the claimant who owns it and to staff in that market), `ExposureUpdated` (to managers)
+- Server-to-client messages: `ClaimUpdated { claimId, claimNumber, market, eventType, status, occurredAt }` (to the claimant who owns it and to staff in that market; `status` null when unchanged, e.g. reserve adjusted), `ExposureUpdated { market, currency, claimType, occurredAt }` (to managers)
+- Groups are set by the server from the JWT on connect: `user:{id}` (everyone), `staff:{market}` (officers, managers), `managers`. No client-callable hub methods
+- Single instance only: with several API instances SignalR needs a backplane (Redis / Azure SignalR), because the instance whose consumer handles an event can only reach its own connections
 - Clients **re-fetch over REST** when notified. Push is a hint, REST is the source of truth.
 
 ### Authorization
