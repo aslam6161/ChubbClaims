@@ -257,7 +257,7 @@ public sealed class Claim : AggregateRoot
 
         request.Answer(text, now);
         MoveTo(next, claimant, now, reason: null);
-        Raise(new InformationProvided(Id, now, request.Id));
+        Raise(new InformationProvided(Id, now, request.Id, AssignedOfficerId));
     }
 
     // ---------------------------------------------------------------- Helpers

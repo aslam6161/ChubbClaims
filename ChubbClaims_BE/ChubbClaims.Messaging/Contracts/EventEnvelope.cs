@@ -15,6 +15,7 @@ public sealed record EventEnvelope(
     DateTimeOffset OccurredAt,
     Guid ClaimId,
     string ClaimNumber,
+    Guid? ClaimantId, // null on messages published before the field was added
     Market Market,
     string Currency,
     ClaimType ClaimType,
@@ -43,10 +44,27 @@ public static class ClaimEventTypes
     public const string ClaimApproved = nameof(ClaimApproved);
     public const string ClaimSettled = nameof(ClaimSettled);
     public const string ClaimRejected = nameof(ClaimRejected);
+
+    /// <summary>
+    /// The claim's status right after this event, derived from the event type (each event is one
+    /// transition). Null for events that do not change status (reserve adjustments) or unknown types.
+    /// </summary>
+    public static ClaimStatus? StatusAfter(string eventType) => eventType switch
+    {
+        ClaimSubmitted => ClaimStatus.Submitted,
+        ClaimPickedUp or InformationProvided => ClaimStatus.UnderReview,
+        InformationRequested => ClaimStatus.AwaitingInformation,
+        ClaimApproved => ClaimStatus.Approved,
+        ClaimSettled => ClaimStatus.Settled,
+        ClaimRejected => ClaimStatus.Rejected,
+        _ => null,
+    };
 }
 
 // The "data" payloads this service consumes. Additive fields keep v1; unknown fields are ignored.
 public sealed record ClaimSubmittedData(Guid ClaimantId, decimal InitialReserve, DateTimeOffset SlaDueAt);
+public sealed record InformationRequestedData(Guid RequestId, string Question);
+public sealed record InformationProvidedData(Guid RequestId, Guid? AssignedOfficerId);
 public sealed record ReserveAdjustedData(decimal OldAmount, decimal NewAmount, string Reason);
 public sealed record ClaimApprovedData(decimal SettlementAmount, decimal OldReserve, decimal NewReserve);
 public sealed record ClaimSettledData(decimal PaidAmount, decimal ReleasedReserve);

@@ -8,7 +8,7 @@ namespace ChubbClaims.Repository.Outbox;
 
 /// <summary>
 /// Turns a domain event into the Kafka event envelope (BACKEND.md §6):
-/// <code>{ eventId, eventType, eventVersion, occurredAt, claimId, claimNumber, market, currency, claimType, data }</code>
+/// <code>{ eventId, eventType, eventVersion, occurredAt, claimId, claimNumber, claimantId, market, currency, claimType, data }</code>
 /// The envelope carries the claim context every consumer needs (market, currency, type), so
 /// consumers never have to call back into the API.
 /// </summary>
@@ -40,6 +40,7 @@ public static class OutboxMessageFactory
             ["occurredAt"] = domainEvent.OccurredAt,
             ["claimId"] = claim.Id,
             ["claimNumber"] = claim.ClaimNumber,
+            ["claimantId"] = claim.ClaimantId, // never changes; lets consumers address the claimant (added in v1, additive)
             ["market"] = claim.Market.ToString(),
             ["currency"] = claim.Currency,
             ["claimType"] = claim.Type.ToString(),
