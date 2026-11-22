@@ -10,7 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../_services/toast';
 import { MatStepperModule } from '@angular/material/stepper';
 import { Router, RouterLink } from '@angular/router';
 import type { Policy } from '../../_models/api-types';
@@ -54,7 +54,7 @@ import {
 export class ReportIncident {
   private readonly claims = inject(ClaimantClaims);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   protected readonly policies = httpResource<Policy[]>(() => '/api/policies/mine');
   protected readonly policyList = computed(() => valueOr(this.policies, [] as Policy[]));
@@ -87,7 +87,7 @@ export class ReportIncident {
     this.unmatchedErrors.set([]);
     try {
       const created = await this.claims.submit(toSubmitRequest(this.form, policy));
-      this.snackBar.open(`Claim ${created.claimNumber} submitted.`, 'OK', { duration: 5000 });
+      this.toast.success(`Claim ${created.claimNumber} submitted.`);
       await this.router.navigate(['/claimant/claims', created.id]);
     } catch (e) {
       const error = AppError.from(e);

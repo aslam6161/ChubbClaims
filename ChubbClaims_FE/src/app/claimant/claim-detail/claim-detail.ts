@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../_services/toast';
 import { RouterLink } from '@angular/router';
 import {
   claimantNextStep,
@@ -48,7 +48,7 @@ import { ClaimantClaims } from '../claimant-claims';
 })
 export class ClaimDetailPage {
   private readonly claims = inject(ClaimantClaims);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   /** Route param :id (component input binding). */
   readonly id = input.required<string>();
@@ -96,9 +96,7 @@ export class ClaimDetailPage {
     try {
       await this.claims.answerInformationRequest(claim.id, request.id, this.answer.value.trim());
       this.answerForm.reset();
-      this.snackBar.open('Thanks, your answer was sent to the claims team.', 'OK', {
-        duration: 4000,
-      });
+      this.toast.success('Thanks, your answer was sent to the claims team.');
       this.claim.reload(); // the server decides the new status; show what it says
     } catch (e) {
       this.answerError.set(AppError.from(e));
