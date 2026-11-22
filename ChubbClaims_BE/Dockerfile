@@ -17,6 +17,11 @@ RUN dotnet publish ChubbClaims.Presentation/ChubbClaims.Presentation.csproj -c R
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
-# aspnet images listen on 8080 by default and run as the non-root "app" user.
+# The folder for claim documents (a volume in compose) must belong to the non-root user the API
+# runs as, or the first upload fails with "access denied".
+USER root
+RUN mkdir -p /app/data/documents && chown -R $APP_UID /app/data
+USER $APP_UID
+# aspnet images listen on 8080 by default.
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "ChubbClaims.Presentation.dll"]

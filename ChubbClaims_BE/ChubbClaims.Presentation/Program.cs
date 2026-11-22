@@ -5,6 +5,8 @@ using ChubbClaims.Presentation.Hubs;
 using ChubbClaims.Presentation.Middleware;
 using ChubbClaims.Repository;
 using ChubbClaims.Service;
+using ChubbClaims.Service.Interfaces;
+using ChubbClaims.Service.Storage;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -36,11 +38,15 @@ try
     builder.Services.AddRealtime();
     builder.Services.AddClaimsHealthChecks();
     builder.Services.AddServices();
+    builder.Services.AddDocumentStorage(
+        builder.Configuration.GetSection(DocumentStorageSettings.SectionName).Get<DocumentStorageSettings>() ?? new DocumentStorageSettings(),
+        builder.Configuration.GetSection(CloudinarySettings.SectionName).Get<CloudinarySettings>() ?? new CloudinarySettings());
     builder.Services.AddRepository(builder.Configuration.GetConnectionString("ClaimsDb")
         ?? throw new InvalidOperationException("Connection string 'ClaimsDb' is not configured."));
     builder.Services.AddMessaging(builder.Configuration.GetSection(KafkaSettings.SectionName).Get<KafkaSettings>() ?? new KafkaSettings());
 
     var app = builder.Build();
+    app.Logger.LogInformation("Claim documents are stored in {DocumentStorage}", app.Services.GetRequiredService<IDocumentStorage>().Name);
 
     if (app.Environment.IsDevelopment())
         await app.Services.InitialiseDatabaseAsync(seed: true); // migrate + seed demo data

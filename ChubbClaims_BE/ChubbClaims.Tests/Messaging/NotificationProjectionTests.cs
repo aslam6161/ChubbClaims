@@ -126,4 +126,40 @@ public class NotificationProjectionTests
         ]);
         claim.Status.ShouldBe(ClaimStatus.Rejected);
     }
+
+    [Fact]
+    public void A_photo_from_the_claimant_tells_the_assigned_officer_and_no_one_else()
+    {
+        var claim = InStatus(ClaimStatus.UnderReview);
+        claim.ClearDomainEvents();
+        claim.AttachDocument(Claimant, Photo("bumper.jpg"), Now);
+
+        var notification = NotificationsFor(claim).ShouldHaveSingleItem();
+
+        notification.UserId.ShouldBe(Officer.UserId);
+        notification.Message.ShouldBe("The claimant added a photo to claim CLM-MY-2026-000001: bumper.jpg");
+    }
+
+    [Fact]
+    public void A_photo_on_an_unassigned_claim_notifies_nobody_yet()
+    {
+        var claim = InStatus(ClaimStatus.Submitted);
+        claim.ClearDomainEvents();
+        claim.AttachDocument(Claimant, Photo(), Now);
+
+        NotificationsFor(claim).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_document_from_the_claims_team_tells_the_claimant()
+    {
+        var claim = InStatus(ClaimStatus.UnderReview);
+        claim.ClearDomainEvents();
+        claim.AttachDocument(Officer, Photo("assessor-report.pdf", "application/pdf"), Now);
+
+        var notification = NotificationsFor(claim).ShouldHaveSingleItem();
+
+        notification.UserId.ShouldBe(Claimant.UserId);
+        notification.Message.ShouldBe("The claims team added a document to your claim CLM-MY-2026-000001: assessor-report.pdf");
+    }
 }

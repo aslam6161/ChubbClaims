@@ -1,4 +1,5 @@
 using ChubbClaims.Domain.Exceptions;
+using ChubbClaims.Domain.Rules;
 using ChubbClaims.Service.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,9 @@ public sealed class ExceptionToProblemDetailsHandler(
         {
             // EF's message is technical; tell the user what happened and what to do.
             DbUpdateConcurrencyException => "This claim was changed by someone else. Reload it and try again.",
+            DocumentStorageException => "Documents can't be stored or read right now. Please try again in a minute.",
+            BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } =>
+                $"The file is too large: a document can be at most {ClaimDocumentRules.MaxBytes / (1024 * 1024)} MB.",
             _ when status >= StatusCodes.Status500InternalServerError => null, // never leak internals
             _ => exception.Message, // expected business errors are safe to explain
         };
@@ -55,6 +59,8 @@ public sealed class ExceptionToProblemDetailsHandler(
         DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Claim was changed by someone else"),
         InvalidClaimTransitionException => (StatusCodes.Status409Conflict, "Action not allowed in the claim's current status"),
         DomainValidationException => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
+        DocumentStorageException => (StatusCodes.Status503ServiceUnavailable, "Document storage unavailable"),
+        BadHttpRequestException bad => (bad.StatusCode, bad.StatusCode == StatusCodes.Status413PayloadTooLarge ? "File too large" : "Bad request"),
         _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred"),
     };
 }

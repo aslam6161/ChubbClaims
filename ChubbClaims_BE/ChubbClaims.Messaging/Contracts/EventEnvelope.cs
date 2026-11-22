@@ -44,10 +44,11 @@ public static class ClaimEventTypes
     public const string ClaimApproved = nameof(ClaimApproved);
     public const string ClaimSettled = nameof(ClaimSettled);
     public const string ClaimRejected = nameof(ClaimRejected);
+    public const string DocumentAttached = nameof(DocumentAttached);
 
     /// <summary>
     /// The claim's status right after this event, derived from the event type (each event is one
-    /// transition). Null for events that do not change status (reserve adjustments) or unknown types.
+    /// transition). Null for events that do not change status (reserve, documents) or unknown types.
     /// </summary>
     public static ClaimStatus? StatusAfter(string eventType) => eventType switch
     {
@@ -69,3 +70,5 @@ public sealed record ReserveAdjustedData(decimal OldAmount, decimal NewAmount, s
 public sealed record ClaimApprovedData(decimal SettlementAmount, decimal OldReserve, decimal NewReserve);
 public sealed record ClaimSettledData(decimal PaidAmount, decimal ReleasedReserve);
 public sealed record ClaimRejectedData(string Reason, decimal ReleasedReserve);
+public sealed record DocumentAttachedData(
+    Guid DocumentId, string FileName, string ContentType, Guid UploadedById, UserRole UploadedByRole, Guid? AssignedOfficerId);

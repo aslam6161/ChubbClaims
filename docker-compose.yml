@@ -70,8 +70,17 @@ services:
       LogFormat: Json
       ConnectionStrings__ClaimsDb: "Server=sqlserver,1433;Database=ChubbClaims;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
       Kafka__BootstrapServers: kafka:29092
+      # Claim photos and documents: Cloudinary (private) when these are set in .env, otherwise
+      # the "documents" volume below. Leave them blank and everything still works.
+      Cloudinary__CloudName: ${CLOUDINARY_CLOUD_NAME:-}
+      Cloudinary__ApiKey: ${CLOUDINARY_API_KEY:-}
+      Cloudinary__ApiSecret: ${CLOUDINARY_API_SECRET:-}
+      Cloudinary__Folder: ${CLOUDINARY_FOLDER:-chubbclaims-dev}
+      DocumentStorage__LocalPath: /app/data/documents
     ports:
       - "5080:8080"
+    volumes:
+      - documents:/app/data/documents
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -80,3 +89,4 @@ services:
 
 volumes:
   sqldata:
+  documents:
