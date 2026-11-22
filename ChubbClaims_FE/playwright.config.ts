@@ -4,7 +4,9 @@ const WEB_URL = process.env['E2E_WEB_URL'] ?? 'http://localhost:4200';
 
 /**
  * Browser tests against the running stack (API, SQL Server, Kafka, SignalR): `npm run e2e`.
- * The dev server is started if it isn't already running; the API must be (docker compose up).
+ * They test whatever answers at WEB_URL: the `web` container from docker compose (the production
+ * build behind nginx) or `npm start`. If nothing answers, the dev server is started on that port.
+ * The API must be running (docker compose up).
  */
 export default defineConfig({
   testDir: './e2e',
@@ -31,7 +33,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm start',
+    command: `npm start -- --port ${new URL(WEB_URL).port || 4200}`,
     url: WEB_URL,
     reuseExistingServer: true,
     timeout: 180_000,

@@ -97,6 +97,9 @@ test('the officer is told with a chime when the claimant answers; Open goes to t
   const claim = await claims.submit();
   await pickUp(claim.id);
   await requestInformation(claim.id, 'Please send the fire report.');
+  // Earlier tests' clean-up answers open questions, which notifies the officer; let that land first,
+  // or its late pop-up replaces the one this test opens.
+  await clearBell('officer.my');
 
   const officer = await signIn('officer.my');
   const claimant = await signIn('claimant.my');
@@ -134,9 +137,9 @@ test("a new claim notifies the market's officers with a chime, ready to pick up;
   signIn,
   claims,
 }) => {
+  await clearBell('officer.my'); // anything still in flight from earlier tests lands first
   const officer = await signIn('officer.my');
   const sgOfficer = await signIn('officer.sg');
-  await sgOfficer.waitForTimeout(1500); // anything still in flight from earlier tests lands first
   const sgTones = await chimes(sgOfficer);
   const tonesBefore = await chimes(officer);
 
