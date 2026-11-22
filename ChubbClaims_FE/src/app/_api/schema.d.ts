@@ -128,6 +128,153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/claims/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach photo or document */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClaimDocumentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Payload Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/claims/{id}/documents/{documentId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read photo or document */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    documentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/jpeg": components["schemas"]["Stream"];
+                        "image/png": components["schemas"]["Stream"];
+                        "image/webp": components["schemas"]["Stream"];
+                        "application/pdf": components["schemas"]["Stream"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/claims": {
         parameters: {
             query?: never;
@@ -1029,6 +1176,7 @@ export interface components {
             openInformationRequest: null | components["schemas"]["InformationRequestResponse"];
             informationRequests: components["schemas"]["InformationRequestResponse"][];
             statusHistory: components["schemas"]["StatusChangeResponse"][];
+            documents: components["schemas"]["ClaimDocumentResponse"][];
             /** Format: uuid */
             assignedOfficerId: null | string;
             priority: null | components["schemas"]["Priority"];
@@ -1038,6 +1186,17 @@ export interface components {
             outstandingReserve: null | number;
             reserveHistory: null | components["schemas"]["ReserveChangeResponse"][];
             notes: null | components["schemas"]["NoteResponse"][];
+        };
+        ClaimDocumentResponse: {
+            /** Format: uuid */
+            id: string;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            uploadedByRole: components["schemas"]["UserRole"];
+            /** Format: date-time */
+            uploadedAt: string;
         };
         /** @enum {unknown} */
         ClaimStatus: "Submitted" | "UnderReview" | "AwaitingInformation" | "Approved" | "Settled" | "Rejected";
@@ -1098,6 +1257,8 @@ export interface components {
             /** Format: date-time */
             lastEventAt: string;
         };
+        /** Format: binary */
+        IFormFile: string;
         InformationRequestResponse: {
             /** Format: uuid */
             id: string;
@@ -1233,6 +1394,8 @@ export interface components {
             at: string;
             reason: null | string;
         };
+        /** Format: binary */
+        Stream: string;
         SubmitClaimRequest: {
             policyNumber: string;
             type: components["schemas"]["ClaimType"];

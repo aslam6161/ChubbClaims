@@ -105,6 +105,14 @@
           </mat-card-content>
         </mat-card>
 
+        <app-claim-documents
+          [claimId]="c.id"
+          [documents]="c.documents"
+          [canAttach]="!closed(c.status)"
+          [viewerIsStaff]="true"
+          (attached)="claim.reload()"
+        />
+
         @if (c.informationRequests.length > 0) {
           <section>
             <h2>Information requests</h2>

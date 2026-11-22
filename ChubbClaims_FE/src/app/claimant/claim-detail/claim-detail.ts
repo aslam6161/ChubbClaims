@@ -20,6 +20,7 @@ import { valueOr } from '../../_helpers/resource';
 import { reloadOnClaimUpdates } from '../../_services/realtime';
 import type { ClaimDetail, UserRole } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
+import { ClaimDocumentsPanel } from '../../_shared/claim-documents/claim-documents';
 import { MoneyPipe } from '../../_shared/money.pipe';
 import { PageState } from '../../_shared/page-state/page-state';
 import { StatusBadge } from '../../_shared/status-badge/status-badge';
@@ -29,6 +30,7 @@ import { ClaimantClaims } from '../claimant-claims';
 @Component({
   selector: 'app-claim-detail',
   imports: [
+    ClaimDocumentsPanel,
     DatePipe,
     MatButtonModule,
     MatCardModule,

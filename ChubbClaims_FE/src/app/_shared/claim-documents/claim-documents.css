@@ -1,0 +1,108 @@
+.documents {
+  /* The drop highlight reaches into the page margin, so the content lines up with the other
+     sections when nothing is being dragged. */
+  margin: 1rem calc(-0.75rem - 2px); /* padding + border */
+  padding: 0.25rem 0.75rem 0.75rem;
+  border: 2px dashed transparent;
+  border-radius: 12px;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.documents--dragging {
+  border-color: var(--brand-orange, #f97316);
+  background: color-mix(in srgb, var(--brand-orange, #f97316) 6%, transparent);
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+h2 {
+  font: var(--mat-sys-title-medium);
+  margin: 0.5rem 0;
+}
+.hint,
+.muted,
+.meta {
+  color: var(--mat-sys-on-surface-variant);
+}
+.hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.uploads li {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.problems li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--mat-sys-error);
+  margin-bottom: 0.25rem;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 1rem;
+}
+.tiles li {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+  cursor: pointer;
+}
+.tile:hover,
+.tile:focus-visible {
+  border-color: var(--brand-orange, #f97316);
+}
+.tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tile mat-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 40px;
+  color: var(--mat-sys-on-surface-variant);
+}
+.tile .pdf {
+  color: #b3261e;
+}
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.meta {
+  font-size: 0.8rem;
+}

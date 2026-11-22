@@ -17,13 +17,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Toast } from '../../_services/toast';
 import { RouterLink } from '@angular/router';
-import { allowedActions, ClaimAction, statusLabel } from '../../_helpers/claim-status';
+import { allowedActions, ClaimAction, isClosed, statusLabel } from '../../_helpers/claim-status';
 import { valueOr } from '../../_helpers/resource';
 import { reloadOnClaimUpdates } from '../../_services/realtime';
 import type { ClaimDetail, UserRole } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
 import { AuthStore } from '../../_services/auth-store';
 import { confirm } from '../../_shared/confirm-dialog/confirm-dialog';
+import { ClaimDocumentsPanel } from '../../_shared/claim-documents/claim-documents';
 import { MoneyPipe } from '../../_shared/money.pipe';
 import { PageState } from '../../_shared/page-state/page-state';
 import { StatusBadge } from '../../_shared/status-badge/status-badge';
@@ -38,6 +39,7 @@ type FormAction = Exclude<ClaimAction, 'pickUp' | 'settle' | 'addNote'>;
 @Component({
   selector: 'app-claim-workbench',
   imports: [
+    ClaimDocumentsPanel,
     DatePipe,
     MatButtonModule,
     MatCardModule,
@@ -131,6 +133,7 @@ export class ClaimWorkbench {
   });
 
   protected readonly label = statusLabel;
+  protected readonly closed = isClosed;
 
   protected who(role: UserRole): string {
     return role === 'Claimant' ? 'Claimant' : role === 'ClaimsManager' ? 'Manager' : 'Officer';
