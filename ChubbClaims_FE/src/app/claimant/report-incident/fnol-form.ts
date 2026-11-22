@@ -17,7 +17,8 @@ import type { ClaimType, DamageType, Policy, SubmitClaimRequest } from '../../_m
 export type FnolForm = FormGroup<{
   policyNumber: FormControl<string>;
   details: FormGroup<{
-    incidentDate: FormControl<string>;
+    /** From the Material datepicker: local midnight of the chosen day, or null. */
+    incidentDate: FormControl<Date | null>;
     incidentLocation: FormControl<string>;
     description: FormControl<string>;
     estimatedLossAmount: FormControl<number | null>;
@@ -35,25 +36,39 @@ export type FnolForm = FormGroup<{
 
 export const DAMAGE_TYPES: readonly DamageType[] = ['Fire', 'Water', 'Storm', 'Theft', 'Other'];
 
-/** yyyy-MM-dd in the user's local time zone (what <input type="date"> uses). */
+/**
+ * yyyy-MM-dd of a day in the user's local time zone. The API takes the incident date in this form,
+ * and the rules below compare these strings (ISO dates sort correctly as text).
+ */
 export function localIsoDate(date: Date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-export function notInFuture(today: () => string): ValidatorFn {
-  return (control: AbstractControl<string>): ValidationErrors | null =>
-    control.value && control.value > today() ? { future: true } : null;
+/** Local midnight of a yyyy-MM-dd day (for the datepicker's min/max). */
+export function fromIsoDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
 
-/** The incident must be inside the selected policy's cover (ISO dates compare as strings). */
+export function notInFuture(today: () => string): ValidatorFn {
+  return (control: AbstractControl<Date | null>): ValidationErrors | null =>
+    control.value && localIsoDate(control.value) > today() ? { future: true } : null;
+}
+
+/**
+ * The incident must be inside the selected policy's cover, and recent enough to still be reported
+ * (the API gives the earliest reportable day, so the reporting window isn't hard-coded here).
+ */
 export function withinPolicy(policy: () => Policy | undefined): ValidatorFn {
-  return (control: AbstractControl<string>): ValidationErrors | null => {
+  return (control: AbstractControl<Date | null>): ValidationErrors | null => {
     const p = policy();
     if (!p || !control.value) return null;
-    return control.value < p.effectiveFrom || control.value > p.effectiveTo
-      ? { notCovered: { from: p.effectiveFrom, to: p.effectiveTo } }
-      : null;
+    const day = localIsoDate(control.value);
+    if (day < p.effectiveFrom || day > p.effectiveTo)
+      return { notCovered: { from: p.effectiveFrom, to: p.effectiveTo } };
+    if (p.reportableFrom && day < p.reportableFrom) return { tooLate: { from: p.reportableFrom } };
+    return null;
   };
 }
 
@@ -72,8 +87,7 @@ export function createFnolForm(
   const form: FnolForm = new FormGroup({
     policyNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     details: new FormGroup({
-      incidentDate: new FormControl('', {
-        nonNullable: true,
+      incidentDate: new FormControl<Date | null>(null, {
         validators: [Validators.required, notInFuture(today), withinPolicy(policy)],
       }),
       incidentLocation: text(500),
@@ -121,7 +135,7 @@ export function toSubmitRequest(form: FnolForm, policy: Policy): SubmitClaimRequ
   return {
     policyNumber: policy.policyNumber,
     type: policy.productType,
-    incidentDate: d.incidentDate,
+    incidentDate: d.incidentDate ? localIsoDate(d.incidentDate) : '', // required: set by now
     incidentLocation: d.incidentLocation.trim(),
     description: d.description.trim(),
     estimatedLossAmount: d.estimatedLossAmount,

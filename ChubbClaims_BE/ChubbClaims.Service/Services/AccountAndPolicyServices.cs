@@ -1,3 +1,4 @@
+using ChubbClaims.Domain.Settings;
 using ChubbClaims.Repository.Interfaces;
 using ChubbClaims.Service.DTOs.Auth;
 using ChubbClaims.Service.DTOs.Policies;
@@ -21,8 +22,14 @@ public sealed class AccountService(IUserRepository users, ICurrentUser currentUs
         (await users.ListAsync(ct)).Select(u => u.ToResponse()).ToList();
 }
 
-public sealed class PolicyService(IPolicyRepository policies, ICurrentUser currentUser) : IPolicyService
+public sealed class PolicyService(
+    IPolicyRepository policies, ICurrentUser currentUser, ClaimRulesSettings rules, TimeProvider clock) : IPolicyService
 {
-    public async Task<IReadOnlyList<PolicyResponse>> GetMineAsync(CancellationToken ct) =>
-        (await policies.GetByHolderAsync(currentUser.UserId, ct)).Select(p => p.ToResponse()).ToList();
+    public async Task<IReadOnlyList<PolicyResponse>> GetMineAsync(CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+        return (await policies.GetByHolderAsync(currentUser.UserId, ct))
+            .Select(p => p.ToResponse(now, rules.MaxIncidentAgeDays))
+            .ToList();
+    }
 }

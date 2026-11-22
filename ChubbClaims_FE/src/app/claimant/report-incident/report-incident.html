@@ -18,7 +18,7 @@
           @for (p of policyList(); track p.policyNumber) {
             <mat-radio-button
               [value]="p.policyNumber"
-              [disabled]="!p.isActive"
+              [disabled]="p.reportableFrom === null"
               (change)="choosePolicy(p)"
             >
               <span class="policy">
@@ -27,15 +27,22 @@
                   {{ p.market }} · {{ p.currency }} · cover
                   {{ p.effectiveFrom | date: 'd MMM y' }} –
                   {{ p.effectiveTo | date: 'd MMM y' }}
-                  @if (!p.isActive) {
-                    · <em>cancelled</em>
-                  } @else if (p.effectiveTo < today) {
-                    ·
-                    <em
-                      >cover ended: only incidents before {{ p.effectiveTo | date: 'd MMM y' }}</em
-                    >
-                  }
                 </span>
+                <!-- The API says which incident dates can still be reported (cover, not future,
+                     reporting window), so the reason is shown before anyone fills in the form. -->
+                @if (!p.isActive) {
+                  <em class="muted">Cancelled: it can't take new claims.</em>
+                } @else if (p.reportableFrom === null) {
+                  <em class="muted"
+                    >Cover ended too long ago: it's past the deadline for reporting an incident.</em
+                  >
+                } @else if (p.effectiveTo < today) {
+                  <em class="muted"
+                    >Cover ended: you can still report incidents from
+                    {{ p.reportableFrom | date: 'd MMM y' }} to
+                    {{ p.reportableTo | date: 'd MMM y' }}.</em
+                  >
+                }
               </span>
             </mat-radio-button>
           }
@@ -49,11 +56,23 @@
 
       <!-- 2. What happened -->
       <mat-step [stepControl]="form.controls.details" label="What happened" formGroupName="details">
-        <mat-form-field appearance="outline">
+        <!-- A click anywhere on the field opens the calendar (the label covers the input until it floats). -->
+        <mat-form-field appearance="outline" (click)="picker.open()">
           <mat-label>Date of the incident</mat-label>
-          <input matInput type="date" formControlName="incidentDate" [max]="today" required />
+          <input
+            matInput
+            [matDatepicker]="picker"
+            formControlName="incidentDate"
+            [min]="minDate()"
+            [max]="maxDate()"
+            required
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="picker" />
+          <mat-datepicker #picker />
           @let date = form.controls.details.controls.incidentDate;
-          @if (date.hasError('required')) {
+          @if (date.hasError('matDatepickerParse')) {
+            <mat-error>Enter a valid date, or pick one from the calendar.</mat-error>
+          } @else if (date.hasError('required')) {
             <mat-error>Enter the date.</mat-error>
           } @else if (date.hasError('future')) {
             <mat-error>The date can't be in the future.</mat-error>
@@ -61,6 +80,11 @@
             <mat-error>
               This policy only covers {{ date.getError('notCovered').from | date: 'd MMM y' }} to
               {{ date.getError('notCovered').to | date: 'd MMM y' }}.
+            </mat-error>
+          } @else if (date.hasError('tooLate')) {
+            <mat-error>
+              That's past the reporting deadline. The earliest date you can report is
+              {{ date.getError('tooLate').from | date: 'd MMM y' }}.
             </mat-error>
           } @else if (date.hasError('server')) {
             <mat-error>{{ date.getError('server') }}</mat-error>
