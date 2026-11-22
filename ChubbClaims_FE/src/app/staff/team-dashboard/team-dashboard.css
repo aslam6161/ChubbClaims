@@ -27,6 +27,24 @@ h2 {
   background: #ffe8b3;
   color: #5c3d00;
 }
+a.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+a.pill:hover,
+a.pill:focus-visible {
+  background: #ffd98a;
+  text-decoration: underline;
+}
+a.pill mat-icon {
+  font-size: 1.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
 .table {
   width: 100%;
 }

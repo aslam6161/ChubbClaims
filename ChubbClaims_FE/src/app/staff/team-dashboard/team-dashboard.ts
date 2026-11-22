@@ -10,6 +10,7 @@ import {
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
+import { RouterLink } from '@angular/router';
 import { valueOr } from '../../_helpers/resource';
 import { roleLabel } from '../../_helpers/home-route';
 import { timeAgo } from '../../_helpers/time-ago';
@@ -26,7 +27,7 @@ import { PageState } from '../../_shared/page-state/page-state';
  */
 @Component({
   selector: 'app-team-dashboard',
-  imports: [MatCardModule, MatIconModule, MatTableModule, MoneyPipe, PageState],
+  imports: [MatCardModule, MatIconModule, MatTableModule, MoneyPipe, PageState, RouterLink],
   templateUrl: './team-dashboard.html',
   styleUrl: './team-dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import type { ExposureReport, TeamWorkload, UserRole } from '../../_models/api-types';
 import { AuthStore } from '../../_services/auth-store';
 import { loginResponse } from '../../_testing';
@@ -68,7 +69,7 @@ describe('TeamDashboard', () => {
     sessionStorage.clear();
     TestBed.configureTestingModule({
       imports: [TeamDashboard],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     TestBed.inject(AuthStore).signIn(loginResponse(role));
     const backend = TestBed.inject(HttpTestingController);
@@ -88,6 +89,8 @@ describe('TeamDashboard', () => {
     const page = fixture.nativeElement as HTMLElement;
     expect(page.textContent).toContain('Hafiz Ismail');
     expect(page.textContent).toContain('2 unassigned claims waiting to be picked up');
+    // ...and it's a link to the work queue, which opens on its Unassigned tab.
+    expect(page.querySelector('a.pill')?.getAttribute('href')).toBe('/staff/queue');
     expect(page.textContent).not.toContain('Outstanding exposure');
   });
 
