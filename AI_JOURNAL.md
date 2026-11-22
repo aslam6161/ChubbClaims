@@ -29,11 +29,6 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - Challenged: the AI flagged that IMSAnuglar is Angular 12 with NgModules and `*ngIf`. I agreed to take only folder naming and keep Angular 22 standalone + signals.
 - Overrode: kept the spec over my own project where it matters: no AutoMapper (commercial licence), ProblemDetails instead of my custom `ExceptionMiddleware`, `DependencyInjection.cs` per layer.
 
-### 2026-11-21 · Planning · .sln vs .slnx
-- Asked: why `.slnx`?
-- Accepted (after checking): the AI first recommended `.sln` to match Bento_BE. I checked the installed SDK (10.0.402): `dotnet new sln` produces `.slnx` by default in .NET 10.
-- Overrode: kept `.slnx`, the SDK default; nothing in this project needs the old format.
-
 ### 2026-11-21 · Planning · API project name and style
 - Asked: `ChubbClaims.API` with Minimal APIs (AI recommendation) or Bento-style.
 - Overrode: chose `ChubbClaims.Presentation` with Controllers + `BaseApiController`, the structure I use in production and can defend line by line.

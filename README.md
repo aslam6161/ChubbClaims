@@ -169,7 +169,7 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 
 ---
 
-## What's built, and what I cut
+## What's built
 
 | Priority | Item | Status |
 |---|---|---|
@@ -183,9 +183,6 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | P1 | Realtime notifier → SignalR and in-app notifications | ✅ |
 | P1 | Team workload and performance endpoint | ✅ |
 | P1 | `/health` (database) | ✅ |
-| P2 | Approval authority limit (manager must approve above a threshold) | ✂️ cut |
-| P2 | Integration tests with WebApplicationFactory + Testcontainers | ✂️ cut (end-to-end smoke tests against the running stack instead) |
-| P2 | Dead-letter topic for poison messages | ✂️ cut (invalid messages are logged and skipped; handler failures retry) |
 | Web P0 | Dev sign-in, interceptors, role-guarded lazy areas, a home per role | ✅ |
 | Web P0 | Claimant: report an incident (FNOL), my claims, claim detail, answer an information request | ✅ |
 | Web P0 | Officer: work queue (overdue, 409 on pick-up), claim workbench with every action | ✅ |
@@ -193,7 +190,6 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | Web P1 | SignalR live updates with a polling fallback; Team page (workload, manager exposure) | ✅ |
 | Web P1 | Server-side search and pagination on My claims and the work queue | ✅ |
 | Web P2 | Committed Playwright end-to-end suite | ✅ (38 tests, `npm run e2e`) |
-| Web P2 | nginx container for the web app in docker compose | ✂️ cut (`npm start` runs it) |
 | Web P2 | Notification bell with a chime; officers notified of new claims in their market | ✅ |
 | Extra | Photos and documents on a claim (claimant and staff): private storage, type checked from the bytes, live updates and notifications | ✅ (Cloudinary adapter built; verified with the local-disk fallback only) |
 
