@@ -1,0 +1,40 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0.5rem 0.25rem 1rem;
+}
+.item {
+  height: auto;
+  min-height: 3.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  white-space: normal;
+  line-height: 1.3;
+}
+.meta {
+  font-size: 0.8rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+.unread {
+  background: var(--mat-sys-primary-container);
+}
+.unread .message {
+  font-weight: 600;
+}
+:host {
+  margin-right: 0.35rem; /* room for the badge before the user's name */
+}
+.empty {
+  margin: 0;
+  padding: 1rem;
+  max-width: 18rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+}

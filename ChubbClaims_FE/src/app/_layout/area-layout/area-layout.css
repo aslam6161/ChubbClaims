@@ -79,6 +79,11 @@ nav a.active {
     width: 109px;
     height: 11px;
   }
+  /* Icon-only nav buttons don't need Material's 64 px minimum text-button width. */
+  nav a {
+    min-width: 0;
+    padding: 0 0.6rem;
+  }
   /* Icons only on phones; the labels stay in the accessibility tree. */
   .label {
     position: absolute;

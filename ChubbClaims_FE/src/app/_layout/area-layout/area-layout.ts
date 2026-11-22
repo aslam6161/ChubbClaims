@@ -13,6 +13,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { homeUrlFor, roleLabel } from '../../_helpers/home-route';
 import { AuthStore } from '../../_services/auth-store';
 import { RealtimeService } from '../../_services/realtime';
+import { NotificationBell } from '../notification-bell/notification-bell';
 
 export interface NavLink {
   readonly label: string;
@@ -30,6 +31,7 @@ export interface NavLink {
     MatButtonModule,
     MatIconModule,
     MatToolbarModule,
+    NotificationBell,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
