@@ -1,4 +1,5 @@
 # docker compose up --build
+#   Web app        http://localhost:4200        (nginx; forwards /api and /hubs to the API)
 #   API + Scalar   http://localhost:5080/scalar
 #   SQL Server     localhost,1433   (sa / MSSQL_SA_PASSWORD from .env)
 #   Kafka          localhost:9092   (host)   kafka:29092 (containers)
@@ -86,6 +87,15 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+
+  web:
+    build:
+      context: ./ChubbClaims_FE
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"   # the same address as `npm start`, so stop this container to use the dev server
+    depends_on:
+      - api
 
 volumes:
   sqldata:
