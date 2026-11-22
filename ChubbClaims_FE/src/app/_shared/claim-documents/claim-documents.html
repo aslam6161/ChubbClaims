@@ -1,0 +1,91 @@
+<section
+  class="documents"
+  [class.documents--dragging]="dragging()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="dragging.set(false)"
+  (drop)="onDrop($event)"
+  aria-labelledby="documents-title"
+>
+  <div class="head">
+    <h2 id="documents-title">Photos and documents</h2>
+    @if (canAttach()) {
+      <input
+        #picker
+        type="file"
+        multiple
+        class="sr-only"
+        tabindex="-1"
+        aria-hidden="true"
+        [accept]="accept"
+        (change)="onPicked(picker)"
+      />
+      <button mat-stroked-button type="button" (click)="picker.click()" [disabled]="uploading()">
+        <mat-icon>add_photo_alternate</mat-icon> Add photos or files
+      </button>
+    }
+  </div>
+  @if (canAttach()) {
+    <p class="hint">JPEG, PNG, WebP or PDF, up to 10 MB each. You can also drop files here.</p>
+  }
+
+  @if (uploads().length > 0) {
+    <ul class="uploads" aria-live="polite">
+      @for (u of uploads(); track $index) {
+        <li>
+          <span class="name">{{ u.name }}</span>
+          <mat-progress-bar
+            [mode]="u.percent === 0 ? 'indeterminate' : 'determinate'"
+            [value]="u.percent"
+            [attr.aria-label]="'Uploading ' + u.name"
+          />
+        </li>
+      }
+    </ul>
+  }
+
+  @if (problems().length > 0) {
+    <ul class="problems" role="alert">
+      @for (p of problems(); track $index) {
+        <li>
+          <mat-icon>error</mat-icon>
+          <span
+            ><strong>{{ p.name }}</strong
+            >: {{ p.reason }}</span
+          >
+        </li>
+      }
+    </ul>
+  }
+
+  @if (documents().length === 0) {
+    <p class="muted">No photos or documents yet.</p>
+  } @else {
+    <ul class="tiles">
+      @for (d of documents(); track d.id) {
+        <li>
+          <button
+            type="button"
+            class="tile"
+            (click)="open(d)"
+            [attr.aria-label]="'Open ' + d.fileName"
+          >
+            @if (isImage(d.contentType)) {
+              @if (previews().get(d.id); as url) {
+                <img [src]="url" alt="" />
+              } @else {
+                <mat-icon>{{ failedPreviews().has(d.id) ? 'broken_image' : 'image' }}</mat-icon>
+              }
+            } @else {
+              <mat-icon class="pdf">picture_as_pdf</mat-icon>
+            }
+          </button>
+          <span class="name" [title]="d.fileName">{{ d.fileName }}</span>
+          <span class="meta"
+            >{{ uploader(d.uploadedByRole) }} · {{ d.uploadedAt | date: 'd MMM' }} ·
+            {{ size(d.sizeBytes) }}</span
+          >
+        </li>
+      }
+    </ul>
+  }
+</section>

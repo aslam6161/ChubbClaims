@@ -83,3 +83,15 @@ public interface IWorkQueueService
     Task<WorkQueuePageResponse> GetAsync(
         WorkQueueView view, ClaimStatus? status, WorkQueueSort sort, string? search, int page, int pageSize, CancellationToken ct);
 }
+
+public interface IClaimDocumentService
+{
+    /// <summary>
+    /// Attaches a photo or document to a claim the caller may see: its claimant, or staff in its
+    /// market, while the claim is open. The type is detected from the bytes (JPEG, PNG, WebP, PDF).
+    /// </summary>
+    Task<ClaimDocumentResponse> UploadAsync(Guid claimId, DocumentUpload upload, CancellationToken ct);
+
+    /// <summary>The file, for the same people who may see the claim. Others get NotFound.</summary>
+    Task<DocumentContent> OpenAsync(Guid claimId, Guid documentId, CancellationToken ct);
+}

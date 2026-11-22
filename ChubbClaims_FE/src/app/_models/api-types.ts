@@ -26,6 +26,7 @@ export type SubmitClaimResponse = Schemas['SubmitClaimResponse'];
 export type ClaimSummary = Schemas['ClaimSummaryResponse'];
 export type MyClaimsPage = Schemas['MyClaimsPageResponse'];
 export type ClaimDetail = Schemas['ClaimDetailResponse'];
+export type ClaimDocument = Schemas['ClaimDocumentResponse'];
 
 // Staff
 export type WorkQueueItem = Schemas['WorkQueueItemResponse'];

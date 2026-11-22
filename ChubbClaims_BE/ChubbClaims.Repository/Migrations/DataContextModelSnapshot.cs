@@ -136,6 +136,60 @@ namespace ChubbClaims.Repository.Migrations
                     b.ToTable("Claims", (string)null);
                 });
 
+            modelBuilder.Entity("ChubbClaims.Domain.Entity.ClaimDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ClaimId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UploadedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UploadedByRole")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("ClaimId", "UploadedAt");
+
+                    b.ToTable("ClaimDocuments", (string)null);
+                });
+
             modelBuilder.Entity("ChubbClaims.Domain.Entity.ClaimNote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -529,6 +583,15 @@ namespace ChubbClaims.Repository.Migrations
                     b.Navigation("PropertyDetails");
                 });
 
+            modelBuilder.Entity("ChubbClaims.Domain.Entity.ClaimDocument", b =>
+                {
+                    b.HasOne("ChubbClaims.Domain.Entity.Claim", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ChubbClaims.Domain.Entity.ClaimNote", b =>
                 {
                     b.HasOne("ChubbClaims.Domain.Entity.Claim", null)
@@ -567,6 +630,8 @@ namespace ChubbClaims.Repository.Migrations
 
             modelBuilder.Entity("ChubbClaims.Domain.Entity.Claim", b =>
                 {
+                    b.Navigation("Documents");
+
                     b.Navigation("InformationRequests");
 
                     b.Navigation("Notes");

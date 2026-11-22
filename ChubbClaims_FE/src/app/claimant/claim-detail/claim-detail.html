@@ -35,6 +35,9 @@
         </mat-card-header>
         <mat-card-content>
           <blockquote>{{ req.question }}</blockquote>
+          <p class="muted">
+            Photos or a report? Add them under <em>Photos and documents</em> below.
+          </p>
           <form [formGroup]="answerForm" (ngSubmit)="sendAnswer(c)">
             <mat-form-field appearance="outline" class="full">
               <mat-label>Your answer</mat-label>
@@ -113,6 +116,13 @@
         </mat-card-content>
       </mat-card>
     </div>
+
+    <app-claim-documents
+      [claimId]="c.id"
+      [documents]="c.documents"
+      [canAttach]="!closed(c.status)"
+      (attached)="claim.reload()"
+    />
 
     <section>
       <h2>Timeline</h2>

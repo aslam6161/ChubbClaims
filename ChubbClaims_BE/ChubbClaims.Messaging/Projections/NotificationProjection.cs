@@ -1,4 +1,5 @@
 using System.Globalization;
+using ChubbClaims.Domain.Enums;
 using ChubbClaims.Domain.ReadModels;
 using ChubbClaims.Messaging.Contracts;
 
@@ -7,8 +8,8 @@ namespace ChubbClaims.Messaging.Projections;
 /// <summary>
 /// Who is told what for each claim event (pure, unit tested). Claimants hear about their claim's
 /// progress; the claims officers of the market hear about a new claim waiting to be picked up; the
-/// assigned officer hears when the claimant answers. Reserve changes are internal and never produce
-/// a claimant notification.
+/// assigned officer hears when the claimant answers or adds a document, and the claimant hears when
+/// the claims team adds one. Reserve changes are internal and never produce a claimant notification.
 /// </summary>
 public static class NotificationProjection
 {
@@ -32,6 +33,9 @@ public static class NotificationProjection
     private static IReadOnlyList<Notification> ForClaimantOrAssignedOfficer(EventEnvelope e)
     {
         var n = e.ClaimNumber;
+
+        if (e.EventType == ClaimEventTypes.DocumentAttached)
+            return ForDocument(e);
 
         if (e.EventType == ClaimEventTypes.InformationProvided)
         {
@@ -57,6 +61,22 @@ public static class NotificationProjection
 
         return claimantMessage is not null && e.ClaimantId is { } claimantId
             ? [new Notification(claimantId, e.ClaimId, n, claimantMessage, e.OccurredAt)]
+            : [];
+    }
+
+    /// <summary>The other side hears about a new document; nobody is told about their own upload.</summary>
+    private static IReadOnlyList<Notification> ForDocument(EventEnvelope e)
+    {
+        var d = e.DataAs<DocumentAttachedData>();
+        var what = d.ContentType.StartsWith("image/", StringComparison.Ordinal) ? "a photo" : "a document";
+
+        if (d.UploadedByRole == UserRole.Claimant)
+            return d.AssignedOfficerId is { } officerId // unassigned: whoever picks it up sees it on the claim
+                ? [new Notification(officerId, e.ClaimId, e.ClaimNumber, $"The claimant added {what} to claim {e.ClaimNumber}: {d.FileName}", e.OccurredAt)]
+                : [];
+
+        return e.ClaimantId is { } claimantId
+            ? [new Notification(claimantId, e.ClaimId, e.ClaimNumber, $"The claims team added {what} to your claim {e.ClaimNumber}: {d.FileName}", e.OccurredAt)]
             : [];
     }
 }

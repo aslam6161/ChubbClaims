@@ -96,6 +96,13 @@ The phase-by-phase story of how each one came about, including the AI suggestion
 - A new consumer group reads from the start of the topic, and the topic outlives database resets.
 - Without the limit, the notifier would flood users with notifications about old changes. In testing it skipped 54 stale events.
 
+### 21. Claim photos are private: the API streams them, storage has no public URL
+- Claim evidence is personal data (damage photos, police reports, addresses). Files are stored as **private** Cloudinary assets, or on a local-disk volume when Cloudinary isn't configured. Nobody gets a storage URL: `GET /api/claims/{id}/documents/{documentId}/content` checks the caller may see the claim (404 otherwise) and streams the file. The web app fetches it with the user's token and shows it from an object URL.
+- **What the server trusts:** nothing the uploader says. The type is detected from the first bytes (JPEG, PNG, WebP, PDF; SVG and HTML are refused because they can carry script). The size is counted while reading, after a fast 413 from the declared length. The storage key is chosen by the server, and the file name is cleaned and used for display only. A SHA-256 of the bytes is stored so the evidence can later be shown unchanged.
+- **Order:** check the claim is open and the caller may attach → store → attach and save in one transaction with the `DocumentAttached` outbox event → if that save fails, delete the stored file. Storage and the database can't share a transaction; this order means a refusal never leaves a file behind.
+- **No credentials needed to run it:** with no `CLOUDINARY_*` in `.env`, files go to a Docker volume, so `docker compose up` can attach photos. The Cloudinary adapter is written and compiles but was **not** run against a real account; everything was verified with the local-disk fallback.
+- **Cost:** every view goes through the API. At volume I'd hand out short-lived signed CDN links after the same check, make thumbnails a storage transformation, and scan uploads for malware before they become visible.
+
 ## Tooling
 
 ### 18. No MediatR, AutoMapper or FluentAssertions

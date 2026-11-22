@@ -44,7 +44,8 @@ public sealed class ClaimConfiguration : IEntityTypeConfiguration<Claim>
         b.HasMany(c => c.StatusHistory).WithOne().HasForeignKey(h => h.ClaimId).OnDelete(DeleteBehavior.Cascade);
         b.HasMany(c => c.ReserveHistory).WithOne().HasForeignKey(h => h.ClaimId).OnDelete(DeleteBehavior.Cascade);
         b.HasMany(c => c.Notes).WithOne().HasForeignKey(n => n.ClaimId).OnDelete(DeleteBehavior.Cascade);
-        foreach (var navigation in new[] { nameof(Claim.InformationRequests), nameof(Claim.StatusHistory), nameof(Claim.ReserveHistory), nameof(Claim.Notes) })
+        b.HasMany(c => c.Documents).WithOne().HasForeignKey(d => d.ClaimId).OnDelete(DeleteBehavior.Cascade);
+        foreach (var navigation in new[] { nameof(Claim.InformationRequests), nameof(Claim.StatusHistory), nameof(Claim.ReserveHistory), nameof(Claim.Notes), nameof(Claim.Documents) })
             b.Navigation(navigation).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         b.Ignore(c => c.DomainEvents);

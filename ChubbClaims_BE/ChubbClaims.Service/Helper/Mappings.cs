@@ -41,6 +41,7 @@ public static class Mappings
         c.OpenInformationRequest?.ToResponse(),
         c.InformationRequests.OrderBy(r => r.RequestedAt).Select(ToResponse).ToList(),
         c.StatusHistory.OrderBy(h => h.At).Select(h => new StatusChangeResponse(h.From, h.To, h.ActorRole, h.At, h.Reason)).ToList(),
+        c.Documents.OrderBy(d => d.UploadedAt).Select(ToResponse).ToList(),
         includeStaffFields ? c.AssignedOfficerId : null,
         includeStaffFields ? c.Priority : null,
         includeStaffFields ? c.ReserveAmount : null,
@@ -51,6 +52,9 @@ public static class Mappings
         includeStaffFields
             ? c.Notes.OrderBy(n => n.CreatedAt).Select(n => new NoteResponse(n.Id, n.AuthorId, n.Text, n.CreatedAt)).ToList()
             : null);
+
+    public static ClaimDocumentResponse ToResponse(this ClaimDocument d) =>
+        new(d.Id, d.FileName, d.ContentType, d.SizeBytes, d.UploadedByRole, d.UploadedAt);
 
     private static InformationRequestResponse ToResponse(this InformationRequest r) =>
         new(r.Id, r.Question, r.RequestedAt, r.Response, r.RespondedAt, r.IsOpen);

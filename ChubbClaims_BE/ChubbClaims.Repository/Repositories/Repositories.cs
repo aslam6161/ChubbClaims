@@ -13,7 +13,8 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
             .Include(c => c.StatusHistory)
             .Include(c => c.ReserveHistory)
             .Include(c => c.Notes)
-            .AsSplitQuery() // four collections: avoid a cartesian-product join
+            .Include(c => c.Documents)
+            .AsSplitQuery() // five collections: avoid a cartesian-product join
             .SingleOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<ClaimantClaimsPage> GetByClaimantAsync(ClaimantClaimsFilter filter, CancellationToken ct)
