@@ -42,6 +42,11 @@ export const SEARCH_DEBOUNCE_MS = 300;
     .search {
       width: 100%;
       max-width: 26rem;
+      /* Slimmer than the default 56 px field (Material density -3); the label still floats. */
+      --mat-form-field-container-height: 44px;
+      --mat-form-field-container-vertical-padding: 10px;
+      /* The clear button would otherwise stretch the field back up while there is text. */
+      --mat-icon-button-state-layer-size: 36px;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
