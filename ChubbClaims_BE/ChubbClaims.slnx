@@ -4,5 +4,6 @@
   <Project Path="ChubbClaims.Presentation/ChubbClaims.Presentation.csproj" />
   <Project Path="ChubbClaims.Repository/ChubbClaims.Repository.csproj" />
   <Project Path="ChubbClaims.Service/ChubbClaims.Service.csproj" />
+  <Project Path="ChubbClaims.SmokeTests/ChubbClaims.SmokeTests.csproj" />
   <Project Path="ChubbClaims.Tests/ChubbClaims.Tests.csproj" />
 </Solution>
