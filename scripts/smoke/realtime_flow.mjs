@@ -103,7 +103,13 @@ await call("POST", `/api/claims/${id}/information-requests/${detail.openInformat
 await waitFor(clients["officer.my"], (m) => isThis()(m) && m.eventType === "InformationProvided");
 await new Promise((r) => setTimeout(r, 300));
 const officerNotes = (await call("GET", "/api/notifications", tokens["officer.my"]))[1].items.filter((n) => n.claimId === id);
-check("assigned officer notified that the claimant answered", officerNotes.length === 1, officerNotes[0]?.message);
+check(
+  "officer notified of the new claim, then that the claimant answered",
+  officerNotes.length === 2 &&
+    officerNotes.some((n) => /waiting to be picked up/.test(n.message)) &&
+    officerNotes.some((n) => /answered your question/.test(n.message)),
+  officerNotes.map((n) => n.message),
+);
 
 const target = forClaim[0];
 let [code] = await call("POST", `/api/notifications/${target.id}/read`, tokens["claimant.sg"]);
