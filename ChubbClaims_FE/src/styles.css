@@ -5,6 +5,59 @@
   text-underline-offset: 2px;
 }
 
+/* Pop-up messages by meaning (see _services/toast.ts). Each has its own colour AND icon; all
+   text/background pairs pass WCAG AA (white on green or red is 6.5:1). */
+.toast {
+  --mat-snack-bar-container-shape: 10px;
+}
+.toast .mdc-snackbar__label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.toast .mdc-snackbar__label::before {
+  font-family: 'Material Symbols Outlined';
+  font-size: 1.35rem;
+  line-height: 1;
+  flex: none;
+}
+.toast--success {
+  --mat-snack-bar-container-color: #1e6b34;
+  --mat-snack-bar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #c8f5d3;
+}
+.toast--success .mdc-snackbar__label::before {
+  content: 'check_circle';
+}
+.toast--info {
+  --mat-snack-bar-container-color: var(--brand-ink);
+  --mat-snack-bar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #fdba74;
+}
+.toast--info .mdc-snackbar__surface {
+  border-left: 4px solid var(--brand-orange);
+}
+.toast--info .mdc-snackbar__label::before {
+  content: 'notifications';
+  color: var(--brand-orange);
+}
+.toast--warning {
+  --mat-snack-bar-container-color: #ffe08a;
+  --mat-snack-bar-supporting-text-color: #3d2a00;
+  --mat-snack-bar-button-color: #6b3a00;
+}
+.toast--warning .mdc-snackbar__label::before {
+  content: 'warning';
+}
+.toast--error {
+  --mat-snack-bar-container-color: #b3261e;
+  --mat-snack-bar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #ffdad6;
+}
+.toast--error .mdc-snackbar__label::before {
+  content: 'error';
+}
+
 /* Responsive basics shared by every screen (no mobile-specific layouts: out of scope). */
 
 /* A wide table scrolls inside its own box; the page itself never scrolls sideways. */
