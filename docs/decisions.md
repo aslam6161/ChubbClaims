@@ -119,6 +119,18 @@ The phase-by-phase story of how each one came about, including the AI suggestion
 - **Cost:** they need the stack running (skipped, with the reason, when it isn't), and they run one at a time because some read whole queues and totals.
 - With more time I'd move the critical paths into WebApplicationFactory + Testcontainers tests that start their own stack in CI.
 
+### 22. Browser tests drive the real app against the real stack (Playwright)
+- **What they cover that unit tests can't:** what a user sees across two browsers. A decision showing in the claimant's open page, a pop-up with a chime, a 409 from a stale queue, a photo previewed through the token, every screen at phone width. Unit tests mock HTTP, so none of this is covered there.
+- **Setup through the API, behaviour through the browser.** Each test creates its claims over HTTP (fast, no clicking through setup), then does the thing being tested in the UI, then closes its claims. No test depends on the seed's exact state, so they run in any order, any number of times.
+- **Kept from flaking for the right reasons:**
+  - Assertions wait for the screen, not for fixed delays.
+  - A pop-up is checked against a record of every pop-up shown, because a newer one replaces it.
+  - Unread counts start from a settled, empty bell, because Kafka can still be delivering the previous test's clean-up.
+  - A "stale queue" is made stale on purpose by freezing the queue response, instead of racing the live update.
+- **Console errors fail a test** unless it expects them. That caught nothing new, but it would catch the next unhandled error.
+- **Cost:** they need the stack running and take about 2½ minutes, one test at a time.
+- **Not done:** running them in CI. That needs the stack in CI (docker compose in the job), which is the same next step as #20.
+
 ## What I'd do next, in order
 
 1. **CI:** build, test, and a container build on every PR. Then Testcontainers integration tests for the outbox and the consumers.

@@ -252,3 +252,24 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
   - 46/46 on the running stack three runs in a row without a reset, and again on a fresh seed alongside the 284 unit tests from one `dotnet test` on the solution.
   - Pointed at a dead address: 46 skipped, 0 failed, with the reason shown.
   - Changed one expected status on purpose: that test failed and named the step, then I restored it.
+
+### 2026-11-22 · Browser tests committed (Playwright)
+- Asked: "I can't see any test case for Angular." The 99 Vitest unit tests were there (`*.spec.ts`, `npm test`); they don't show in VS Code's Testing panel because Angular runs Vitest through `ng test`. The real gap was elsewhere: about 145 browser checks I ran per phase lived only in my scratch folder, so a reviewer couldn't rerun them, yet the README said the app "was checked in a real browser".
+- Built `ChubbClaims_FE/e2e` with `@playwright/test` (pinned to 1.56.1, the version whose Chromium was already installed): 38 tests in 9 files, `npm run e2e`.
+  - Fixtures: `signIn(user)` opens a separate browser per user, signs in through the login page and fails the test on unexpected console errors. `claims` creates claims over the API and closes them afterwards.
+  - The config starts `npm start` if it isn't running, and fails at once with what to do if the API isn't.
+- **Changed, not just copied:**
+  - Every check that leaned on the seed (exact row counts, approving CLM-MY-2026-000003, the "kitchen" claim, picking up CLM-000001) now uses claims the test creates. The suite runs in any state and leaves the seeded claims alone, so it no longer spoils the demo data.
+  - Fixed sleeps became assertions that wait for the screen.
+- **Found while porting:**
+  - One scratch script (pop-up styles) had silently broken when the work queue became paged: it still read the response as an array. Uncommitted checks rot, which is the argument for committing them.
+  - The date picker ignores Escape while its opening animation runs. That's Material's behaviour, not something a person can hit; the test waits for the animation.
+- **My test bugs, caught by running the whole suite repeatedly:**
+  - A pop-up check missed a pop-up that a newer one replaced. Pages now record every pop-up shown.
+  - A delayed route threw when the app had already cancelled that request.
+  - A regex had a literal non-breaking space in it.
+- **Verified:**
+  - 38/38 twice in a row without a reset, and on a fresh seed.
+  - With the API at a dead address it stops at once with the reason.
+  - Changing one expected status on purpose made that test fail with expected and actual, and I put it back.
+  - Unit tests (99) and the production build are unaffected.
