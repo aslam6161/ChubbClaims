@@ -81,6 +81,7 @@ public sealed record ClaimDetailResponse(
     InformationRequestResponse? OpenInformationRequest,
     IReadOnlyList<InformationRequestResponse> InformationRequests,
     IReadOnlyList<StatusChangeResponse> StatusHistory,
+    IReadOnlyList<ClaimDocumentResponse> Documents,
     // staff only
     Guid? AssignedOfficerId,
     Priority? Priority,
@@ -95,5 +96,9 @@ public sealed record InformationRequestResponse(
 public sealed record StatusChangeResponse(ClaimStatus? From, ClaimStatus To, UserRole ActorRole, DateTimeOffset At, string? Reason);
 
 public sealed record ReserveChangeResponse(decimal OldAmount, decimal NewAmount, Guid ActorId, DateTimeOffset At, string Reason);
+
+/// <summary>A photo or document on the claim. The file itself is read from its own endpoint.</summary>
+public sealed record ClaimDocumentResponse(
+    Guid Id, string FileName, string ContentType, long SizeBytes, UserRole UploadedByRole, DateTimeOffset UploadedAt);
 
 public sealed record NoteResponse(Guid Id, Guid AuthorId, string Text, DateTimeOffset CreatedAt);
