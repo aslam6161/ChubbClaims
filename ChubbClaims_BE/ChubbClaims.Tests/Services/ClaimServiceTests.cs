@@ -204,4 +204,20 @@ public class ClaimServiceTests
 
         claim.AssignedOfficerId.ShouldBe(Manager.UserId);
     }
+
+    [Fact]
+    public async Task My_claims_are_paged_and_searched_for_the_caller_with_the_banner_counts()
+    {
+        var awaiting = InStatus(ClaimStatus.AwaitingInformation);
+        _claims.GetByClaimantAsync(default!, default).ReturnsForAnyArgs(
+            new ClaimantClaimsPage([awaiting], TotalCount: 23, AwaitingInformationCount: 2, OldestAwaitingInformationId: awaiting.Id));
+
+        var page = await ServiceFor(Claimant).GetMineAsync("  Ampang ", 2, 10, CancellationToken.None);
+
+        await _claims.Received(1).GetByClaimantAsync(
+            new ClaimantClaimsFilter(Claimant.UserId, "Ampang", new PageRequest(2, 10)), Arg.Any<CancellationToken>());
+        (page.Page, page.PageSize, page.TotalCount, page.AwaitingYouCount, page.OldestAwaitingYouClaimId)
+            .ShouldBe((2, 10, 23, 2, awaiting.Id));
+        page.Items.Single().ClaimNumber.ShouldBe(awaiting.ClaimNumber);
+    }
 }

@@ -16,13 +16,30 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
             .AsSplitQuery() // four collections: avoid a cartesian-product join
             .SingleOrDefaultAsync(c => c.Id == id, ct);
 
-    public async Task<IReadOnlyList<Claim>> GetByClaimantAsync(Guid claimantId, CancellationToken ct) =>
-        await db.Claims.AsNoTracking()
-            .Where(c => c.ClaimantId == claimantId) // uses IX_Claims_ClaimantId
-            .OrderByDescending(c => c.ReportedAt)
-            .ToListAsync(ct);
+    public async Task<ClaimantClaimsPage> GetByClaimantAsync(ClaimantClaimsFilter filter, CancellationToken ct)
+    {
+        var mine = db.Claims.AsNoTracking().Where(c => c.ClaimantId == filter.ClaimantId); // IX_Claims_ClaimantId
 
-    public async Task<IReadOnlyList<WorkQueueRow>> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct)
+        // Over all their claims, so "1 claim needs information from you" doesn't depend on search or page.
+        var awaiting = mine.Where(c => c.Status == ClaimStatus.AwaitingInformation);
+        var awaitingCount = await awaiting.CountAsync(ct);
+        var oldestAwaiting = awaitingCount == 0
+            ? null
+            : await awaiting.OrderBy(c => c.ReportedAt).Select(c => (Guid?)c.Id).FirstAsync(ct);
+
+        if (filter.Search is { } term)
+            mine = mine.Where(c => c.ClaimNumber.Contains(term) || c.PolicyNumber.Contains(term)
+                || c.IncidentLocation.Contains(term) || c.Description.Contains(term));
+
+        var total = await mine.CountAsync(ct);
+        var page = await mine
+            .OrderByDescending(c => c.ReportedAt).ThenByDescending(c => c.ClaimNumber) // stable across pages
+            .Skip(filter.Paging.Skip).Take(filter.Paging.PageSize)
+            .ToListAsync(ct);
+        return new ClaimantClaimsPage(page, total, awaitingCount, oldestAwaiting);
+    }
+
+    public async Task<WorkQueuePage> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct)
     {
         // Unassigned: IX_Claims_Status_Market. Mine: IX_Claims_AssignedOfficerId_Status.
         var query = db.Claims.AsNoTracking().Where(c => c.Market == filter.Market);
@@ -35,12 +52,21 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
             ? query.Where(c => c.Status == status)
             : query.Where(c => c.Status != ClaimStatus.Settled && c.Status != ClaimStatus.Rejected);
 
-        query = filter.Order == WorkQueueOrder.SlaDueAt
-            ? query.OrderBy(c => c.SlaDueAt).ThenBy(c => c.ReportedAt)
-            : query.OrderBy(c => c.ReportedAt);
+        // Same rule as ClaimProgress.IsOverdue, written out so SQL can count it. Whole queue: ignores search.
+        var overdue = await query.CountAsync(c => c.DecisionAt == null && c.SlaDueAt < filter.Now, ct);
 
-        return await query
-            .Take(filter.Take)
+        if (filter.Search is { } term)
+            query = query.Where(c => c.ClaimNumber.Contains(term) || c.PolicyNumber.Contains(term)
+                || c.IncidentLocation.Contains(term));
+
+        var total = await query.CountAsync(ct);
+
+        query = filter.Order == WorkQueueOrder.SlaDueAt
+            ? query.OrderBy(c => c.SlaDueAt).ThenBy(c => c.ReportedAt).ThenBy(c => c.ClaimNumber)
+            : query.OrderBy(c => c.ReportedAt).ThenBy(c => c.ClaimNumber); // tie-breaker: stable across pages
+
+        var rows = await query
+            .Skip(filter.Paging.Skip).Take(filter.Paging.PageSize)
             .Select(c => new WorkQueueRow(
                 c.Id, c.ClaimNumber, c.Type, c.Market, c.Status, c.Priority, c.ReportedAt, c.SlaDueAt, c.DecisionAt,
                 c.AssignedOfficerId,
@@ -48,6 +74,7 @@ public sealed class ClaimRepository(DataContext db) : IClaimRepository
                 c.Status == ClaimStatus.Settled || c.Status == ClaimStatus.Rejected ? 0m : c.ReserveAmount - c.PaidAmount,
                 c.Currency))
             .ToListAsync(ct);
+        return new WorkQueuePage(rows, total, overdue);
     }
 
     public async Task<IReadOnlyList<WorkloadClaimRow>> GetWorkloadRowsAsync(Market market, DateTimeOffset decidedSince, CancellationToken ct) =>

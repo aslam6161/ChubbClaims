@@ -3,6 +3,7 @@ using ChubbClaims.Domain.Enums;
 using ChubbClaims.Domain.Settings;
 using ChubbClaims.Domain.ValueObjects;
 using ChubbClaims.Repository.Interfaces;
+using ChubbClaims.Service.DTOs;
 using ChubbClaims.Service.DTOs.Claims;
 using ChubbClaims.Service.Exceptions;
 using ChubbClaims.Service.Helper;
@@ -46,10 +47,13 @@ public sealed class ClaimService(
         return new SubmitClaimResponse(claim.Id, claim.ClaimNumber, claim.Status);
     }
 
-    public async Task<IReadOnlyList<ClaimSummaryResponse>> GetMineAsync(CancellationToken ct)
+    public async Task<MyClaimsPageResponse> GetMineAsync(string? search, int page, int pageSize, CancellationToken ct)
     {
-        var mine = await claims.GetByClaimantAsync(currentUser.UserId, ct);
-        return mine.Select(c => c.ToSummary()).ToList();
+        var result = await claims.GetByClaimantAsync(
+            new ClaimantClaimsFilter(currentUser.UserId, Paging.NormalizeSearch(search), new PageRequest(page, pageSize)), ct);
+        return new MyClaimsPageResponse(
+            result.Claims.Select(c => c.ToSummary()).ToList(), page, pageSize, result.TotalCount,
+            result.AwaitingInformationCount, result.OldestAwaitingInformationId);
     }
 
     public async Task<ClaimDetailResponse> GetAsync(Guid claimId, CancellationToken ct)

@@ -1,4 +1,6 @@
 using ChubbClaims.Presentation.Auth;
+using System.ComponentModel.DataAnnotations;
+using ChubbClaims.Service.DTOs;
 using ChubbClaims.Service.DTOs.Claims;
 using ChubbClaims.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -28,12 +30,20 @@ public sealed class ClaimsController(IClaimService claims) : BaseApiController
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
-    /// <summary>The caller's claims, newest first.</summary>
+    /// <summary>
+    /// One page of the caller's claims, newest first. `search` matches claim number, policy number,
+    /// incident location or description.
+    /// </summary>
     [HttpGet("mine")]
     [Tags("Claimant")]
     [Authorize(Policy = AuthorizationPolicies.ClaimantOnly)]
     [EndpointSummary("My claims")]
-    public Task<IReadOnlyList<ClaimSummaryResponse>> Mine(CancellationToken ct) => claims.GetMineAsync(ct);
+    public Task<MyClaimsPageResponse> Mine(
+        [FromQuery, StringLength(Paging.MaxSearchLength)] string? search = null,
+        [FromQuery, Range(1, Paging.MaxPage)] int page = 1,
+        [FromQuery, Range(1, Paging.MaxPageSize)] int pageSize = Paging.DefaultPageSize,
+        CancellationToken ct = default) =>
+        claims.GetMineAsync(search, page, pageSize, ct);
 
     /// <summary>
     /// One claim, for its claimant or for staff in its market (staff also get reserve, notes and history).

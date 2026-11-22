@@ -10,11 +10,17 @@ public interface IClaimRepository
     /// <summary>The full aggregate (with children), tracked for changes. Null if it does not exist.</summary>
     Task<Claim?> GetAsync(Guid id, CancellationToken ct);
 
-    /// <summary>The claimant's claims, newest first, without children (read-only list).</summary>
-    Task<IReadOnlyList<Claim>> GetByClaimantAsync(Guid claimantId, CancellationToken ct);
+    /// <summary>
+    /// One page of the claimant's claims, newest first, without children (read-only), plus the
+    /// count of their claims waiting on them (over all their claims, not just the search or page).
+    /// </summary>
+    Task<ClaimantClaimsPage> GetByClaimantAsync(ClaimantClaimsFilter filter, CancellationToken ct);
 
-    /// <summary>One page of the staff work queue, projected in SQL (no aggregate loading).</summary>
-    Task<IReadOnlyList<WorkQueueRow>> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct);
+    /// <summary>
+    /// One page of the staff work queue, projected in SQL (no aggregate loading), plus the total and
+    /// the overdue count of the whole queue (search narrows the rows, not the overdue count).
+    /// </summary>
+    Task<WorkQueuePage> GetWorkQueueAsync(WorkQueueFilter filter, CancellationToken ct);
 
     /// <summary>
     /// Assigned claims in a market that are open or were decided since <paramref name="decidedSince"/>:
@@ -62,7 +68,27 @@ public enum WorkQueueOrder
 /// AssignedTo null = the unassigned queue of the market; otherwise that officer's claims.
 /// Without a status filter, closed claims are left out (a queue is open work).
 /// </summary>
-public sealed record WorkQueueFilter(Market Market, Guid? AssignedTo, ClaimStatus? Status, WorkQueueOrder Order, int Take);
+public sealed record WorkQueueFilter(
+    Market Market, Guid? AssignedTo, ClaimStatus? Status, WorkQueueOrder Order, string? Search, PageRequest Paging,
+    DateTimeOffset Now);
+
+/// <param name="Rows">The requested page.</param>
+/// <param name="TotalCount">Rows matching the filter and search, across all pages.</param>
+/// <param name="OverdueCount">Overdue claims in the whole queue (ignores search).</param>
+public sealed record WorkQueuePage(IReadOnlyList<WorkQueueRow> Rows, int TotalCount, int OverdueCount);
+
+public sealed record ClaimantClaimsFilter(Guid ClaimantId, string? Search, PageRequest Paging);
+
+/// <param name="AwaitingInformationCount">Claims waiting on the claimant, over all their claims.</param>
+/// <param name="OldestAwaitingInformationId">The one to answer first, for a direct link.</param>
+public sealed record ClaimantClaimsPage(
+    IReadOnlyList<Claim> Claims, int TotalCount, int AwaitingInformationCount, Guid? OldestAwaitingInformationId);
+
+/// <summary>1-based page number and page size (validated by the API: 1..100).</summary>
+public sealed record PageRequest(int Page, int PageSize)
+{
+    public int Skip => (Page - 1) * PageSize;
+}
 
 public sealed record WorkQueueRow(
     Guid Id,

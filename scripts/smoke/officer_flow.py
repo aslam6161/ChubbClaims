@@ -57,7 +57,8 @@ def new_fnol():
 
 
 # ---------------------------------------------------------------- work queue
-s, b = call("GET", "/api/work-queue?view=unassigned", officer)
+s, page = call("GET", "/api/work-queue?view=unassigned", officer)
+b = page["items"] if page else []
 check("MY unassigned queue: only MY, only unassigned", s == 200 and b and all(r["market"] == "MY" and r["assignedOfficerId"] is None for r in b),
       [r["claimNumber"] for r in b or []])
 check("queue sorted by SLA, overdue flagged first", b[0]["isOverdue"] and [r["slaDueAt"] for r in b] == sorted(r["slaDueAt"] for r in b),
@@ -65,22 +66,43 @@ check("queue sorted by SLA, overdue flagged first", b[0]["isOverdue"] and [r["sl
 check("queue rows carry age, waiting-on and outstanding reserve",
       all(isinstance(r["ageDays"], int) and r["waitingOn"] == "Officer" and r["outstandingReserve"] > 0 and r["currency"] == "MYR" for r in b))
 
-s, b = call("GET", "/api/work-queue?view=mine", officer)
+s, page = call("GET", "/api/work-queue?view=mine", officer)
+b = page["items"] if page else []
 statuses = sorted(r["status"] for r in b)
 check("MY officer 'mine': open claims only (no Settled)", s == 200 and "Settled" not in statuses and len(b) == 3, statuses)
 awaiting = [r for r in b if r["status"] == "AwaitingInformation"]
 check("awaiting-information row waits on the claimant", awaiting and awaiting[0]["waitingOn"] == "Claimant")
 
-s, b = call("GET", "/api/work-queue?view=mine&status=Settled", officer)
+s, page = call("GET", "/api/work-queue?view=mine&status=Settled", officer)
+b = page["items"] if page else []
 check("status filter can show closed claims", s == 200 and len(b) == 1 and b[0]["outstandingReserve"] == 0, b and b[0]["claimNumber"])
 
-s, b = call("GET", "/api/work-queue?view=unassigned", sg_officer)
+s, page = call("GET", "/api/work-queue?view=unassigned", sg_officer)
+b = page["items"] if page else []
 check("SG officer sees only SG", s == 200 and all(r["market"] == "SG" for r in b), [r["claimNumber"] for r in b])
 
 s, _ = call("GET", "/api/work-queue", claimant)
 check("claimant cannot read the work queue -> 403", s == 403, s)
 s, b = call("GET", "/api/work-queue?view=everything", officer)
 check("unknown view -> 400", s == 400, s)
+
+# Paging and search (server-side: only one page is ever sent).
+s, everything = call("GET", "/api/work-queue?view=mine&pageSize=100", officer)
+s, p1 = call("GET", "/api/work-queue?view=mine&pageSize=2&page=1", officer)
+s, p2 = call("GET", "/api/work-queue?view=mine&pageSize=2&page=2", officer)
+numbers = lambda page: [r["claimNumber"] for r in page["items"]]
+check("pages chain in order with no overlap; total counts the whole queue",
+      numbers(p1) + numbers(p2) == numbers(everything)[:4] and p1["totalCount"] == len(everything["items"]),
+      numbers(p1) + numbers(p2))
+s, unassigned = call("GET", "/api/work-queue?view=unassigned", officer)
+first = unassigned["items"][0]["claimNumber"]
+s, found = call("GET", f"/api/work-queue?view=unassigned&search={first[-6:]}", officer)
+check("search finds a claim by number; overdue count still covers the whole queue",
+      numbers(found) == [first] and found["overdueCount"] == unassigned["overdueCount"] == 1,
+      (numbers(found), found["overdueCount"]))
+for q in ["pageSize=101", "page=0", "page=2147483647"]:
+    s, _ = call("GET", f"/api/work-queue?{q}", officer)
+    check(f"{q} -> 400 (never a 500)", s == 400, s)
 
 # ---------------------------------------------------------------- full lifecycle
 cid = new_fnol()
@@ -92,7 +114,8 @@ s, _ = call("POST", f"/api/claims/{cid}/pick-up", claimant)
 check("claimant picking up -> 403", s == 403, s)
 s, _ = call("POST", f"/api/claims/{cid}/pick-up", officer)
 check("officer picks up -> 204", s == 204, s)
-s, b = call("GET", "/api/work-queue?view=mine", officer)
+s, page = call("GET", "/api/work-queue?view=mine", officer)
+b = page["items"]
 check("claim now in officer's queue", any(r["id"] == cid for r in b))
 
 s, b = call("PUT", f"/api/claims/{cid}/reserve", manager, {"amount": 12000, "reason": "Quote"})

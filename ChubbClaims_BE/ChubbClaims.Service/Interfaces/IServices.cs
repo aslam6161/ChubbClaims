@@ -30,7 +30,8 @@ public interface IClaimService
     /// <summary>First notice of loss by the current claimant.</summary>
     Task<SubmitClaimResponse> SubmitAsync(SubmitClaimRequest request, CancellationToken ct);
 
-    Task<IReadOnlyList<ClaimSummaryResponse>> GetMineAsync(CancellationToken ct);
+    /// <summary>One page of the caller's claims, newest first, optionally narrowed by search text.</summary>
+    Task<MyClaimsPageResponse> GetMineAsync(string? search, int page, int pageSize, CancellationToken ct);
 
     /// <summary>
     /// The claim if the caller may see it: the claimant who owns it, or staff in its market.
@@ -75,6 +76,10 @@ public interface INotificationService
 
 public interface IWorkQueueService
 {
-    /// <summary>The caller's market queue: unassigned claims, or the caller's own open claims.</summary>
-    Task<IReadOnlyList<WorkQueueItemResponse>> GetAsync(WorkQueueView view, ClaimStatus? status, WorkQueueSort sort, CancellationToken ct);
+    /// <summary>
+    /// One page of the caller's market queue (unassigned claims, or the caller's own open claims),
+    /// optionally narrowed by search text.
+    /// </summary>
+    Task<WorkQueuePageResponse> GetAsync(
+        WorkQueueView view, ClaimStatus? status, WorkQueueSort sort, string? search, int page, int pageSize, CancellationToken ct);
 }

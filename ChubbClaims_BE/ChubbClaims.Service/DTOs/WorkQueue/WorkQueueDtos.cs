@@ -15,6 +15,13 @@ public enum WorkQueueSort
     Reported = 2, // oldest first
 }
 
+/// <summary>
+/// One page of the work queue. TotalCount counts rows matching the search across all pages;
+/// OverdueCount is for the whole queue (ignores search), so the header doesn't change as you search.
+/// </summary>
+public sealed record WorkQueuePageResponse(
+    IReadOnlyList<WorkQueueItemResponse> Items, int Page, int PageSize, int TotalCount, int OverdueCount);
+
 /// <summary>One row of the work queue: what an officer needs to decide what to work on next.</summary>
 public sealed record WorkQueueItemResponse(
     Guid Id,

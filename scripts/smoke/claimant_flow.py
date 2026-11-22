@@ -78,9 +78,17 @@ check("FNOL motor without vehicle details -> 422", s == 422, b and b.get("detail
 s, b, _ = call("POST", "/api/claims", my, {"policyNumber": "POL-MY-M-0001"})
 check("FNOL missing fields -> 400 with field errors", s == 400 and "errors" in b, sorted((b or {}).get("errors", {}).keys()))
 
-s, b, _ = call("GET", "/api/claims/mine", my)
+s, page, _ = call("GET", "/api/claims/mine", my)
+b = page["items"]
 check("my claims include the new one", s == 200 and any(c["id"] == new_id for c in b), f"{len(b)} claims")
 awaiting = next(c for c in b if c["status"] == "AwaitingInformation")
+check("banner fields: how many wait on the claimant, and which to answer first",
+      page["awaitingYouCount"] == 1 and page["oldestAwaitingYouClaimId"] == awaiting["id"], page["awaitingYouCount"])
+s, kitchen, _ = call("GET", "/api/claims/mine?search=kitchen", my)
+check("search matches the description (case-insensitive)", [c["claimNumber"] for c in kitchen["items"]] == [awaiting["claimNumber"]],
+      [c["claimNumber"] for c in kitchen["items"]])
+s, theirs, _ = call("GET", "/api/claims/mine?search=CLM-MY", login("claimant.sg@demo.local"))
+check("search never reaches another claimant's claims", theirs["totalCount"] == 0, theirs["totalCount"])
 
 s, b, _ = call("GET", f"/api/claims/{new_id}", my)
 check("claimant detail hides reserve/notes", s == 200 and b["reserveAmount"] is None and b["notes"] is None, b and b["status"])
