@@ -15,7 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../_services/toast';
 import { RouterLink } from '@angular/router';
 import { allowedActions, ClaimAction, statusLabel } from '../../_helpers/claim-status';
 import { valueOr } from '../../_helpers/resource';
@@ -59,7 +59,7 @@ export class ClaimWorkbench {
   private readonly staffClaims = inject(StaffClaims);
   private readonly auth = inject(AuthStore);
   private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   /** Route param :id. */
   readonly id = input.required<string>();
@@ -258,14 +258,12 @@ export class ClaimWorkbench {
       if (directive) directive.resetForm();
       else form?.reset();
       if (closePanel) this.open.set(null);
-      this.snackBar.open(done, 'OK', { duration: 3000 });
+      this.toast.success(done);
       this.claim.reload();
     } catch (e) {
       const error = AppError.from(e);
       if (error.status === 409) {
-        this.snackBar.open(`${error.userMessage} The claim has been reloaded.`, 'OK', {
-          duration: 6000,
-        });
+        this.toast.warning(`${error.userMessage} The claim has been reloaded.`);
         this.open.set(null);
         this.claim.reload();
       } else {

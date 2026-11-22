@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../_services/toast';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
@@ -40,7 +40,7 @@ import { StaffClaims } from '../staff-claims';
 export class WorkQueue {
   private readonly staffClaims = inject(StaffClaims);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   protected readonly views: readonly { view: WorkQueueView; label: string }[] = [
     { view: 'Unassigned', label: 'Unassigned' },
@@ -86,16 +86,15 @@ export class WorkQueue {
     this.pickingUp.set(row.id);
     try {
       await this.staffClaims.pickUp(row.id);
-      this.snackBar.open(`${row.claimNumber} is now yours.`, 'OK', { duration: 3000 });
+      this.toast.success(`${row.claimNumber} is now yours.`);
       await this.router.navigate(['/staff/claims', row.id]);
     } catch (e) {
       const error = AppError.from(e);
-      // 409: another officer got there first (status changed or RowVersion conflict).
-      const message =
-        error.status === 409
-          ? `${row.claimNumber} was already picked up by another officer.`
-          : error.userMessage;
-      this.snackBar.open(message, 'OK', { duration: 5000 });
+      // 409: another officer got there first (status changed or RowVersion conflict). That's a
+      // warning (nothing broke, the queue is refreshed); anything else is an error.
+      if (error.status === 409)
+        this.toast.warning(`${row.claimNumber} was already picked up by another officer.`);
+      else this.toast.error(error.userMessage);
       this.queue.reload();
     } finally {
       this.pickingUp.set(null);
