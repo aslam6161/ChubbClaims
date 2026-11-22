@@ -12,6 +12,7 @@ namespace ChubbClaims.Domain.Rules;
 ///                     UnderReview -Approve-> Approved -Settle-> Settled (closed)
 ///                     UnderReview -Reject--> Rejected                    (closed)
 /// AdjustReserve: allowed in UnderReview, AwaitingInformation, Approved; status unchanged.
+/// AttachDocument: allowed while the claim is open (not Settled or Rejected); status unchanged.
 /// </code>
 /// </summary>
 public static class ClaimTransitions
@@ -28,6 +29,10 @@ public static class ClaimTransitions
             [(ClaimStatus.UnderReview, ClaimAction.Approve)] = ClaimStatus.Approved,
             [(ClaimStatus.Approved, ClaimAction.Settle)] = ClaimStatus.Settled,
             [(ClaimStatus.UnderReview, ClaimAction.Reject)] = ClaimStatus.Rejected,
+            [(ClaimStatus.Submitted, ClaimAction.AttachDocument)] = ClaimStatus.Submitted,
+            [(ClaimStatus.UnderReview, ClaimAction.AttachDocument)] = ClaimStatus.UnderReview,
+            [(ClaimStatus.AwaitingInformation, ClaimAction.AttachDocument)] = ClaimStatus.AwaitingInformation,
+            [(ClaimStatus.Approved, ClaimAction.AttachDocument)] = ClaimStatus.Approved,
         };
 
     public static bool IsAllowed(ClaimStatus from, ClaimAction action) => Table.ContainsKey((from, action));

@@ -1,3 +1,5 @@
+using ChubbClaims.Domain.Enums;
+
 namespace ChubbClaims.Domain.Events;
 
 /// <summary>Base for claim events. Each event carries what consumers need, so they never call back into the API.</summary>
@@ -32,4 +34,13 @@ public sealed record ClaimSettled(Guid ClaimId, DateTimeOffset OccurredAt, decim
 
 /// <summary>ReleasedReserve = outstanding reserve immediately before closing.</summary>
 public sealed record ClaimRejected(Guid ClaimId, DateTimeOffset OccurredAt, string Reason, decimal ReleasedReserve)
+    : ClaimEvent(ClaimId, OccurredAt);
+
+/// <summary>
+/// A photo or document was attached. UploadedByRole and AssignedOfficerId let the notifier tell the
+/// other side (claimant uploads → assigned officer; staff uploads → claimant) without a lookup.
+/// </summary>
+public sealed record DocumentAttached(
+    Guid ClaimId, DateTimeOffset OccurredAt, Guid DocumentId, string FileName, string ContentType,
+    Guid UploadedById, UserRole UploadedByRole, Guid? AssignedOfficerId)
     : ClaimEvent(ClaimId, OccurredAt);

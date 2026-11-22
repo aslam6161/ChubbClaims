@@ -39,6 +39,10 @@ internal static class ClaimTestData
         new(ClaimType.Property, new DateOnly(2026, 11, 18), "Mont Kiara", "Burst pipe flooded the kitchen",
             estimate, null, new PropertyDetails("12 Jalan Kiara, Kuala Lumpur", DamageType.Water));
 
+    /// <summary>A photo as the service would hand it to the domain after storing it.</summary>
+    public static DocumentFile Photo(string fileName = "rear-bumper.jpg", string contentType = "image/jpeg", long sizeBytes = 2_400_000) =>
+        new($"claims/{Guid.NewGuid():N}/{Guid.NewGuid():N}.jpg", fileName, contentType, sizeBytes, new string('a', 64));
+
     public static Claim Submit(IncidentReport? report = null, Policy? policy = null, Actor? claimant = null, DateTimeOffset? now = null) =>
         Claim.Submit(report ?? MotorReport(), policy ?? Policy(), claimant ?? Claimant,
             ClaimNumber.Create(Market.MY, 2026, 1), Rules, now ?? Now);

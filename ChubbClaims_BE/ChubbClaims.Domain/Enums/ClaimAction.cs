@@ -10,4 +10,5 @@ public enum ClaimAction
     Approve = 5,
     Settle = 6,
     Reject = 7,
+    AttachDocument = 8,
 }

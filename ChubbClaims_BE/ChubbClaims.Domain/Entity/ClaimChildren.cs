@@ -1,4 +1,5 @@
 using ChubbClaims.Domain.Enums;
+using ChubbClaims.Domain.ValueObjects;
 
 namespace ChubbClaims.Domain.Entity;
 
@@ -99,4 +100,36 @@ public sealed class ClaimNote : BaseEntity
     public Guid AuthorId { get; private set; }
     public string Text { get; private set; } = null!;
     public DateTimeOffset CreatedAt { get; private set; }
+}
+
+/// <summary>
+/// A photo or document attached to the claim (evidence). Shared by the claimant and the claims team,
+/// append-only: evidence is never replaced or deleted through the API.
+/// </summary>
+public sealed class ClaimDocument : BaseEntity
+{
+    private ClaimDocument() { } // EF Core
+
+    internal ClaimDocument(Guid claimId, DocumentFile file, Guid uploadedById, UserRole uploadedByRole, DateTimeOffset uploadedAt)
+    {
+        ClaimId = claimId;
+        StorageKey = file.StorageKey;
+        FileName = file.FileName;
+        ContentType = file.ContentType;
+        SizeBytes = file.SizeBytes;
+        Sha256 = file.Sha256;
+        UploadedById = uploadedById;
+        UploadedByRole = uploadedByRole;
+        UploadedAt = uploadedAt;
+    }
+
+    public Guid ClaimId { get; private set; }
+    public string StorageKey { get; private set; } = null!;
+    public string FileName { get; private set; } = null!;
+    public string ContentType { get; private set; } = null!;
+    public long SizeBytes { get; private set; }
+    public string Sha256 { get; private set; } = null!;
+    public Guid UploadedById { get; private set; }
+    public UserRole UploadedByRole { get; private set; }
+    public DateTimeOffset UploadedAt { get; private set; }
 }

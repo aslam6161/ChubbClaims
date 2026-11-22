@@ -24,6 +24,7 @@ public sealed class Claim : AggregateRoot
     private readonly List<ClaimStatusChange> _statusHistory = [];
     private readonly List<ReserveChange> _reserveHistory = [];
     private readonly List<ClaimNote> _notes = [];
+    private readonly List<ClaimDocument> _documents = [];
 
     private Claim() { } // EF Core
 
@@ -59,6 +60,7 @@ public sealed class Claim : AggregateRoot
     public IReadOnlyCollection<ClaimStatusChange> StatusHistory => _statusHistory;
     public IReadOnlyCollection<ReserveChange> ReserveHistory => _reserveHistory;
     public IReadOnlyCollection<ClaimNote> Notes => _notes;
+    public IReadOnlyCollection<ClaimDocument> Documents => _documents;
 
     public bool IsClosed => Status is ClaimStatus.Settled or ClaimStatus.Rejected;
 
@@ -260,6 +262,42 @@ public sealed class Claim : AggregateRoot
         Raise(new InformationProvided(Id, now, request.Id, AssignedOfficerId));
     }
 
+    // ---------------------------------------------------------------- Documents (claimant and staff)
+
+    /// <summary>
+    /// Checks everything <see cref="AttachDocument"/> will check, before any bytes are stored, so a
+    /// refused upload never leaves a file behind in storage.
+    /// </summary>
+    public void EnsureCanAttachDocument(Actor actor)
+    {
+        if (!ClaimTransitions.IsAllowed(Status, ClaimAction.AttachDocument))
+            throw new InvalidClaimTransitionException(Status, ClaimAction.AttachDocument,
+                $"This claim is {Status.ToString().ToLowerInvariant()}: no more documents can be added.");
+        EnsureOwnerOrStaffInMarket(actor);
+        if (_documents.Count >= ClaimDocumentRules.MaxPerClaim)
+            throw new DomainValidationException($"A claim can have at most {ClaimDocumentRules.MaxPerClaim} documents.");
+    }
+
+    /// <summary>
+    /// Attaches a stored photo or document. The claimant who reported the claim and staff in its
+    /// market may attach while the claim is open; the status does not change.
+    /// </summary>
+    public ClaimDocument AttachDocument(Actor actor, DocumentFile file, DateTimeOffset now)
+    {
+        EnsureCanAttachDocument(actor);
+        if (!ClaimDocumentRules.AllowedContentTypes.Contains(file.ContentType))
+            throw new DomainValidationException("Only JPEG, PNG or WebP photos and PDF documents can be attached.");
+        if (file.SizeBytes is <= 0 or > ClaimDocumentRules.MaxBytes)
+            throw new DomainValidationException($"A document must be between 1 byte and {ClaimDocumentRules.MaxBytes / (1024 * 1024)} MB.");
+        var fileName = Guard.Required(file.FileName, "File name");
+
+        var document = new ClaimDocument(Id, file with { FileName = fileName }, actor.UserId, actor.Role, now);
+        _documents.Add(document);
+        Raise(new DocumentAttached(Id, now, document.Id, document.FileName, document.ContentType,
+            actor.UserId, actor.Role, AssignedOfficerId));
+        return document;
+    }
+
     // ---------------------------------------------------------------- Helpers
 
     private void MoveTo(ClaimStatus to, Actor actor, DateTimeOffset now, string? reason)
@@ -282,6 +320,12 @@ public sealed class Claim : AggregateRoot
         EnsureStaffInMarket(actor);
         if (AssignedOfficerId != actor.UserId)
             throw new ClaimAccessDeniedException("Only the officer assigned to this claim can do this.");
+    }
+
+    private void EnsureOwnerOrStaffInMarket(Actor actor)
+    {
+        if (actor.IsStaff) EnsureStaffInMarket(actor);
+        else EnsureOwner(actor);
     }
 
     private void EnsureOwner(Actor actor)

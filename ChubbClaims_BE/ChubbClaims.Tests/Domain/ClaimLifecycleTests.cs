@@ -8,7 +8,7 @@ using static ChubbClaims.Tests.Domain.ClaimTestData;
 
 namespace ChubbClaims.Tests.Domain;
 
-/// <summary>The state machine, tested over every status × action combination (6 × 7 = 42 cases).</summary>
+/// <summary>The state machine, tested over every status × action combination (6 × 8 = 48 cases).</summary>
 public class ClaimLifecycleTests
 {
     // The lifecycle from BACKEND.md §5.2, restated independently of ClaimTransitions.
@@ -23,6 +23,11 @@ public class ClaimLifecycleTests
         [(ClaimStatus.UnderReview, ClaimAction.Approve)] = ClaimStatus.Approved,
         [(ClaimStatus.Approved, ClaimAction.Settle)] = ClaimStatus.Settled,
         [(ClaimStatus.UnderReview, ClaimAction.Reject)] = ClaimStatus.Rejected,
+        // Documents can be attached while the claim is open; the status doesn't change.
+        [(ClaimStatus.Submitted, ClaimAction.AttachDocument)] = ClaimStatus.Submitted,
+        [(ClaimStatus.UnderReview, ClaimAction.AttachDocument)] = ClaimStatus.UnderReview,
+        [(ClaimStatus.AwaitingInformation, ClaimAction.AttachDocument)] = ClaimStatus.AwaitingInformation,
+        [(ClaimStatus.Approved, ClaimAction.AttachDocument)] = ClaimStatus.Approved,
     };
 
     private static readonly Dictionary<ClaimAction, Type> EventFor = new()
@@ -34,6 +39,7 @@ public class ClaimLifecycleTests
         [ClaimAction.Approve] = typeof(ClaimApproved),
         [ClaimAction.Settle] = typeof(ClaimSettled),
         [ClaimAction.Reject] = typeof(ClaimRejected),
+        [ClaimAction.AttachDocument] = typeof(DocumentAttached),
     };
 
     public static TheoryData<ClaimStatus, ClaimAction> EveryStatusAndAction()
@@ -59,6 +65,7 @@ public class ClaimLifecycleTests
             case ClaimAction.Approve: claim.Approve(Officer, Settlement, null, t); break;
             case ClaimAction.Settle: claim.Settle(Officer, t); break;
             case ClaimAction.Reject: claim.Reject(Officer, "Excluded", t); break;
+            case ClaimAction.AttachDocument: claim.AttachDocument(Claimant, Photo(), t); break;
             default: throw new ArgumentOutOfRangeException(nameof(action));
         }
     }
@@ -127,7 +134,7 @@ public class ClaimLifecycleTests
     public void Allowed_actions_per_status_are_exposed_for_the_UI()
     {
         ClaimTransitions.AllowedFrom(ClaimStatus.UnderReview).ShouldBe(
-            [ClaimAction.RequestInformation, ClaimAction.AdjustReserve, ClaimAction.Approve, ClaimAction.Reject],
+            [ClaimAction.RequestInformation, ClaimAction.AdjustReserve, ClaimAction.Approve, ClaimAction.Reject, ClaimAction.AttachDocument],
             ignoreOrder: true);
         ClaimTransitions.AllowedFrom(ClaimStatus.Settled).ShouldBeEmpty();
         ClaimTransitions.AllowedFrom(ClaimStatus.Rejected).ShouldBeEmpty();
