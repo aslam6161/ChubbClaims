@@ -83,4 +83,4 @@ Those Playwright scripts were for verification and aren't committed. A committed
 
 ## Out of scope
 
-Real SSO sign-in, document and photo upload, translations, layouts designed for mobile (it's responsive, not mobile-first), offline support, and the notification bell (the API has notifications; the UI doesn't show them yet).
+Real SSO sign-in, document and photo upload, translations, layouts designed for mobile (it's responsive, not mobile-first), and offline support.

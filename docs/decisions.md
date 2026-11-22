@@ -119,5 +119,5 @@ The phase-by-phase story of how each one came about, including the AI suggestion
 4. **Product:**
    - manager approval above an authority limit
    - pausing the SLA while waiting on the claimant
-   - paging for the work queue and notifications
+   - paging for notifications (the claim lists and work queue are paged)
    - reassigning a claim to another officer

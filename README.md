@@ -109,9 +109,9 @@ Stop the `api` container first (`docker compose stop api`), since both use port 
 
 | Suite | How | Count |
 |---|---|---|
-| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 206 |
-| Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 64 |
-| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR); need Python 3 and Node | [scripts/smoke](scripts/smoke/README.md) | 80 checks in 4 scripts |
+| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 219 |
+| Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 90 |
+| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR); need Python 3 and Node | [scripts/smoke](scripts/smoke/README.md) | 88 checks in 4 scripts |
 
 Unit tests cover the claim state machine and every business rule, plus:
 - service orchestration and visibility
@@ -125,7 +125,7 @@ The smoke tests also cover things unit tests can't:
 - **Stopping Kafka:** claims are still accepted, and events drain from the outbox when Kafka returns
 - **Push isolation:** another market's officer and another claimant receive nothing
 
-Frontend tests cover the guards, interceptors, the allowed-action table, FNOL validation, realtime reload and polling, and component tests for the claimant list, the work queue (including a 409) and the Team page.
+Frontend tests cover the guards, interceptors, the allowed-action table, FNOL validation (including the reporting deadline), realtime reload and polling, search and paging (including keeping the current page on screen while the next loads), toasts, the notification bell, and component tests for the claimant list, the work queue (including a 409) and the Team page.
 Each web phase was also checked in a real browser against the running stack: both user types end to end, a decision in one browser updating another, and every screen at phone width.
 
 ---
@@ -180,14 +180,15 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | Web P0 | Officer: work queue (overdue, 409 on pick-up), claim workbench with every action | ✅ |
 | Web P0 | Loading, empty and error states; ProblemDetails shown in plain words; unit tests | ✅ |
 | Web P1 | SignalR live updates with a polling fallback; Team page (workload, manager exposure) | ✅ |
+| Web P1 | Server-side search and pagination on My claims and the work queue | ✅ |
 | Web P2 | Committed Playwright end-to-end suite | ✂️ cut (browser checks were run per phase but not committed) |
 | Web P2 | nginx container for the web app in docker compose | ✂️ cut (`npm start` runs it) |
-| Web P2 | Notification bell | ✂️ cut (the API stores notifications; the UI doesn't show them yet) |
+| Web P2 | Notification bell with a chime; officers notified of new claims in their market | ✅ |
 
 **Out of scope by design:** real identity provider, document and photo uploads, payments integration, fraud scoring, real policy-admin integration (policies are seeded), FX conversion (exposure is reported per currency), email and SMS, multiple languages, per-market regulatory rules, layouts designed for mobile (the web app is responsive, not mobile-first), offline support.
 
 **Known limitations I would fix next:**
-- Paging for the work queue and notifications (capped at 200 and 50 rows).
+- Paging for notifications (the bell shows the latest 50).
 - The SLA clock keeps running while the claim waits on the claimant.
 - A SignalR backplane (Redis) and outbox row locking, both needed before running more than one API instance.
 - A job to rebuild the read models.
