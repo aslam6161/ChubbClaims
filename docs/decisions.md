@@ -113,10 +113,11 @@ The phase-by-phase story of how each one came about, including the AI suggestion
 - A labelled, Development-only shortcut.
 - The API depends only on the token's claims, so moving to Entra ID or Cognito changes where tokens come from, not the authorization code.
 
-### 20. End-to-end smoke scripts instead of Testcontainers integration tests (P2)
-- For the time available, scripts against the real Docker stack gave the most confidence per minute. They cover concurrency races, Kafka replay, a Kafka outage and SignalR isolation.
-- **Cost:** they aren't part of `dotnet test`, and two of them need a fresh seed.
-- With more time I'd move the critical paths into WebApplicationFactory + Testcontainers tests that run in CI.
+### 20. End-to-end smoke tests instead of Testcontainers integration tests (P2)
+- For the time available, tests against the real Docker stack gave the most confidence per minute. They cover the concurrency race, the Kafka read models, SignalR isolation and uploads. Kafka replay and a Kafka outage were checked by hand.
+- They began as Python and Node scripts and were later ported to an xUnit project (`ChubbClaims.SmokeTests`). Now a reviewer needs only the .NET SDK. Each check is a named test in `dotnet test`. Each test creates its own claims, so no fresh seed is needed. The project is black-box: HTTP and the .NET SignalR client, no reference to the API's code, so it sees the same JSON a client does.
+- **Cost:** they need the stack running (skipped, with the reason, when it isn't), and they run one at a time because some read whole queues and totals.
+- With more time I'd move the critical paths into WebApplicationFactory + Testcontainers tests that start their own stack in CI.
 
 ## What I'd do next, in order
 

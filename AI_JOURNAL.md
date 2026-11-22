@@ -236,3 +236,19 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
   - **Pre-existing, found by the phone-width check:** the toolbar was 18 px too wide while the icon font loaded. A badge makes its icon `overflow: visible`, so the bell's ligature text "notifications" spilled out until the font arrived. The badge now sits on the button.
 - My test bugs: a realtime check counted rows before the list loaded, and I ran suites that need a fresh seed back to back.
 - Verified: backend 284/284 (65 new), Vitest 99/99 (9 new), smoke 105/105 on fresh seeds (documents 17/17). Browser: documents 14/14 (preview, viewer, PDF in a new tab, drag and drop, live update both ways, officer notified, closed claim read-only, phone width), and every earlier suite rerun on its own fresh seed (officer 20/20, claimant 18/18, realtime 13/13, notifications 14/14, phone 7/7, search and paging 20/20).
+
+### 2026-11-22 · Smoke tests ported from Python and Node to C#
+- Asked: "smoke test replace with C#, good to avoid Python?" I agreed. A .NET reviewer then needs only the SDK, each check becomes a named test in `dotnet test`, and the official .NET SignalR client replaces the Node one.
+- Built `ChubbClaims.SmokeTests` (xUnit v3, Shouldly, the SignalR client). It is black-box: HTTP and the hub only, no reference to the API's projects, so it checks the JSON a client gets and not shared C# types.
+- **Changed, not just translated:**
+  - **No fresh seed:** checks that leaned on the seed (exact queue counts, the seeded "kitchen" claim, the seeded overdue and waiting-on-you claims) now create their own claims and compare against what the API returns. Each test rejects its claims at the end, so the queues don't grow.
+  - **The "closed claim takes no files" check always runs.** It was skipped when no closed claim happened to exist.
+  - **The "each market sees only its own" check can't pass on an empty list:** it now creates an SG claim and an MY claim first.
+  - **Skipped, not failed, when the API isn't reachable,** with the reason (xUnit v3's `SkipUnless`), so `dotnet test` on the solution works without Docker. Any answer from `/health`, even unhealthy, runs the tests.
+  - **The 413 check** sends only headers over a raw socket and reads exactly one response, so a server that waits for the body fails the test instead of hanging it.
+- **Corrected the README:** it listed Kafka replay and the Kafka outage under the smoke tests. Those were checked by hand (entries above), and it now says so.
+- Same coverage: all 105 checks are mapped to 46 tests; failures name the step (for example "approve before pick-up").
+- Verified:
+  - 46/46 on the running stack three runs in a row without a reset, and again on a fresh seed alongside the 284 unit tests from one `dotnet test` on the solution.
+  - Pointed at a dead address: 46 skipped, 0 failed, with the reason shown.
+  - Changed one expected status on purpose: that test failed and named the step, then I restored it.

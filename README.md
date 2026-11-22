@@ -98,7 +98,7 @@ Open two browser windows side by side. Each tab keeps its own sign-in, so they c
 docker compose up -d sqlserver kafka kafka-ui
 cd ChubbClaims_BE
 dotnet run --project ChubbClaims.Presentation   # http://localhost:5080/scalar, connects to Kafka on localhost:9092
-dotnet test ChubbClaims.slnx
+dotnet test ChubbClaims.slnx                    # unit tests; the smoke tests too once the API is up
 ```
 
 Stop the `api` container first (`docker compose stop api`), since both use port 5080.
@@ -109,9 +109,11 @@ Stop the `api` container first (`docker compose stop api`), since both use port 
 
 | Suite | How | Count |
 |---|---|---|
-| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 284 |
+| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.Tests` | 284 |
 | Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 99 |
-| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR); need Python 3 and Node | [scripts/smoke](scripts/smoke/README.md) | 105 checks in 5 scripts |
+| End-to-end smoke tests (xUnit) against the running stack: real SQL Server, Kafka and SignalR, any state | `dotnet test ChubbClaims_BE/ChubbClaims.SmokeTests` ([how](ChubbClaims_BE/ChubbClaims.SmokeTests/README.md)) | 46 tests, 105 checks |
+
+`dotnet test ChubbClaims_BE/ChubbClaims.slnx` runs both backend suites. Without the stack running, the smoke tests show as skipped, not failed.
 
 Unit tests cover the claim state machine and every business rule, plus:
 - service orchestration and visibility
@@ -121,10 +123,13 @@ Unit tests cover the claim state machine and every business rule, plus:
 
 The smoke tests also cover things unit tests can't:
 - **10 simultaneous pick-ups of the same claim:** each time exactly one 204 and one 409, caught by the RowVersion check
-- **Replaying the whole topic** (consumer offsets reset to 0): every event is skipped as a duplicate and exposure is unchanged
-- **Stopping Kafka:** claims are still accepted, and events drain from the outbox when Kafka returns
+- **Through Kafka:** exposure and notifications update shortly after the request that caused them
 - **Push isolation:** another market's officer and another claimant receive nothing
 - **Uploads:** an `.exe` renamed `photo.jpg` and an SVG are refused, an 11 MB upload gets a 413 before its body is read, and another claimant or market gets 404 for a file
+
+Checked by hand against the stack (steps in the [journal](AI_JOURNAL.md)):
+- **Replaying the whole topic** (consumer offsets reset to 0): every event is skipped as a duplicate and exposure is unchanged
+- **Stopping Kafka:** claims are still accepted, and events drain from the outbox when Kafka returns
 
 Frontend tests cover the guards, interceptors, the allowed-action table, FNOL validation (including the reporting deadline), realtime reload and polling, search and paging (including keeping the current page on screen while the next loads), toasts, the notification bell, and component tests for the claimant list, the work queue (including a 409) and the Team page.
 Each web phase was also checked in a real browser against the running stack: both user types end to end, a decision in one browser updating another, and every screen at phone width.
@@ -174,7 +179,7 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | P1 | Team workload and performance endpoint | ✅ |
 | P1 | `/health` (database) | ✅ |
 | P2 | Approval authority limit (manager must approve above a threshold) | ✂️ cut |
-| P2 | Integration tests with WebApplicationFactory + Testcontainers | ✂️ cut (end-to-end smoke scripts instead) |
+| P2 | Integration tests with WebApplicationFactory + Testcontainers | ✂️ cut (end-to-end smoke tests against the running stack instead) |
 | P2 | Dead-letter topic for poison messages | ✂️ cut (invalid messages are logged and skipped; handler failures retry) |
 | Web P0 | Dev sign-in, interceptors, role-guarded lazy areas, a home per role | ✅ |
 | Web P0 | Claimant: report an incident (FNOL), my claims, claim detail, answer an information request | ✅ |
@@ -204,14 +209,14 @@ All of these are in [docs/decisions.md](docs/decisions.md).
 ```
 docker-compose.yml           SQL Server 2022, Kafka (KRaft), Kafka UI, API
 docs/                        architecture.md, decisions.md
-scripts/smoke/               end-to-end checks against the running stack
 ChubbClaims_BE/
   ChubbClaims.Presentation   host: controllers, auth, SignalR hub, middleware, OpenAPI/Scalar
   ChubbClaims.Service        use cases, DTOs, mapping (no EF, no Kafka)
   ChubbClaims.Domain         claim aggregate, state machine, rules, events (no package references)
   ChubbClaims.Repository     EF Core, migrations, seed, transactional outbox
   ChubbClaims.Messaging      outbox publisher, Kafka consumers, event contract
-  ChubbClaims.Tests
+  ChubbClaims.Tests          unit tests
+  ChubbClaims.SmokeTests     end-to-end tests against the running stack (HTTP and SignalR, black-box)
 ChubbClaims_FE/              Angular 22 web app for claimants and claims staff (see its README)
 docs/screenshots/            the screenshots above
 ```
