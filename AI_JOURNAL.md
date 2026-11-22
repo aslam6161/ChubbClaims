@@ -268,3 +268,25 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
   - With the API at a dead address it stops at once with the reason.
   - Changing one expected status on purpose made that test fail with expected and actual, and I put it back.
   - Unit tests (99) and the production build are unaffected.
+
+### 2026-11-22 · The web app in docker compose
+- Asked: add the Angular app to docker compose, so it's easy to run locally. Now `docker compose up --build` is the only step: http://localhost:4200, no Node needed.
+- Built a two-stage image: Node builds the production bundle, nginx serves it. nginx also forwards `/api`, `/hubs` (WebSockets) and `/health` to the API container, so the browser sees one origin, like the dev server's proxy. Port 4200 matches `npm start`, so the README says to stop the container before using the dev server.
+- **Choices with a reason:**
+  - nginx's default 1 MB body limit would have blocked photo uploads. It allows 12 MB, so the API's own "at most 10 MB" message still reaches the user.
+  - The API's address is re-resolved through Docker's DNS, so rebuilding the API (which `up --build` does whenever its source changed) doesn't strand the web container.
+  - `index.html` is never cached; the hashed bundles are cached for a year.
+  - A missing file is a real 404, not the app's page, so a browser asking for a chunk from an older build hears "not found".
+- **Found by checking, not by reading:**
+  - The bundle is in `dist/ChubbClaims`, not the `dist/chubb-claims` I assumed; the first image build failed on it.
+  - My cache rule only matched hashes of letters and digits, but Angular's hashes can contain `-` and `_` (`chunk-B1u-r8fz.js`), so most chunks would have missed the long cache. Checked the headers per file.
+  - My first checks reached a leftover `ng serve` still holding port 4200, not nginx (no `Server: nginx` header). Stopped it and checked again.
+- **Browser tests now run against either build:**
+  - The "claimant never downloads staff code" check used the dev server's file paths, which a production build doesn't have. It now looks for staff-only and claimant-only component selectors inside the downloaded scripts.
+  - The config starts the dev server on whatever port `E2E_WEB_URL` names.
+  - A PDF check had `localhost:4200` hard-coded.
+- **Flaky test fixed:** an officer pop-up could be replaced by a late notification from the previous test's clean-up (closing a claim answers its open question, which notifies the officer). Those tests now wait for the officer's notifications to settle.
+- **Not explained:** one early run against the container had two failures (unexpected console errors on My claims, and a PDF tab that closed). They didn't come back in six later runs, so I couldn't see the cause.
+- **Verified:**
+  - Against the container: 38/38 on three runs in a row. Against a dev server on another port: 38/38 once the hard-coded port was fixed.
+  - Through nginx: deep links, the API, the hub, the favicon and logo, a 404 for a missing file, the security headers, and the cache headers on `main`, `styles` and a chunk with `-` in its hash.

@@ -27,30 +27,23 @@ Motor and property claims across six APAC markets (MY, SG, HK, TH, ID, AU).
 
 ## Run it
 
-Prerequisites: **Docker Desktop** for the backend, and **Node 22.22+ or 24.15+** for the web app.
+Prerequisites: **Docker Desktop**. That's all: the web app is built and served in a container too.
 
 ```bash
 git clone https://github.com/aslam6161/ChubbClaims.git
 cd ChubbClaims
 cp .env.example .env        # SQL Server sa password; change it if you like
-docker compose up --build   # first run: ~2-3 min (image pulls and build)
+docker compose up --build   # first run: ~3-4 min (image pulls and builds)
 ```
 
 The API waits for SQL Server, applies migrations, seeds demo data and starts publishing events to Kafka.
+The `web` container serves the production build of the Angular app with nginx, which forwards `/api` and `/hubs` (WebSockets) to the API.
 
-Then, in a second terminal, start the web app:
-
-```bash
-cd ChubbClaims_FE
-npm ci
-npm start                   # http://localhost:4200
-```
-
-Open http://localhost:4200 and pick a demo user. The dev server proxies the API and the SignalR hub, so nothing else needs configuring.
+Open http://localhost:4200 and pick a demo user.
 
 | What | URL |
 |---|---|
-| Web app (after `npm start`) | http://localhost:4200 |
+| Web app | http://localhost:4200 |
 | API reference (Scalar) | http://localhost:5080/scalar |
 | OpenAPI document | http://localhost:5080/openapi/v1.json |
 | Health | http://localhost:5080/health |
@@ -102,6 +95,18 @@ dotnet test ChubbClaims.slnx                    # unit tests; the smoke tests to
 ```
 
 Stop the `api` container first (`docker compose stop api`), since both use port 5080.
+The `web` container forwards to the `api` container, so with the API outside Docker use the dev server for the web app (below).
+
+### Work on the web app (dev server, live reload)
+
+```bash
+docker compose stop web     # it uses port 4200 too
+cd ChubbClaims_FE
+npm ci                      # Node 22.22+ or 24.15+
+npm start                   # http://localhost:4200, proxies /api and /hubs to localhost:5080
+```
+
+`docker compose up --build` rebuilds every image whose source changed, so after a change it restarts the API as well as the web app.
 
 ---
 
@@ -190,6 +195,7 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | Web P1 | SignalR live updates with a polling fallback; Team page (workload, manager exposure) | ✅ |
 | Web P1 | Server-side search and pagination on My claims and the work queue | ✅ |
 | Web P2 | Committed Playwright end-to-end suite | ✅ (38 tests, `npm run e2e`) |
+| Web P2 | Web app in docker compose: production build behind nginx, forwarding the API and WebSockets | ✅ (http://localhost:4200) |
 | Web P2 | Notification bell with a chime; officers notified of new claims in their market | ✅ |
 | Extra | Photos and documents on a claim (claimant and staff): private storage, type checked from the bytes, live updates and notifications | ✅ (Cloudinary adapter built; verified with the local-disk fallback only) |
 
