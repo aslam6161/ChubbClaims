@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "e2e": "playwright test",
     "api:types": "npx --yes openapi-typescript@7.13.0 http://127.0.0.1:5080/openapi/v1.json -o src/app/_api/schema.d.ts"
   },
   "private": true,
@@ -28,6 +29,8 @@
     "@angular/build": "^22.3.0",
     "@angular/cli": "^22.3.0",
     "@angular/compiler-cli": "^22.3.0",
+    "@playwright/test": "1.56.1",
+    "@types/node": "^24.19.2",
     "jsdom": "^31.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
