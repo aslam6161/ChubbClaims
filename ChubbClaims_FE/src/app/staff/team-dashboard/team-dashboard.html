@@ -10,10 +10,16 @@
     @if (team(); as t) {
       <header class="section-header">
         <h2>Workload · {{ t.market }}</h2>
-        <p class="pill" [class.pill--attention]="t.unassignedOpenClaims > 0">
-          {{ t.unassignedOpenClaims }} unassigned
-          {{ t.unassignedOpenClaims === 1 ? 'claim' : 'claims' }} waiting to be picked up
-        </p>
+        @if (t.unassignedOpenClaims > 0) {
+          <!-- The work queue opens on its Unassigned tab. -->
+          <a class="pill pill--attention" routerLink="/staff/queue">
+            {{ t.unassignedOpenClaims }} unassigned
+            {{ t.unassignedOpenClaims === 1 ? 'claim' : 'claims' }} waiting to be picked up
+            <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          </a>
+        } @else {
+          <p class="pill">No unassigned claims waiting</p>
+        }
       </header>
 
       <div class="table-scroll">
