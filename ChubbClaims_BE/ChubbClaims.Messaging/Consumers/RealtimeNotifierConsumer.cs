@@ -1,3 +1,4 @@
+using ChubbClaims.Domain.Enums;
 using ChubbClaims.Messaging.Contracts;
 using ChubbClaims.Messaging.Projections;
 using ChubbClaims.Messaging.Realtime;
@@ -10,7 +11,8 @@ using Microsoft.Extensions.Logging;
 namespace ChubbClaims.Messaging.Consumers;
 
 /// <summary>
-/// Stores in-app notifications for each claim event (exactly once) and then pushes a
+/// Stores in-app notifications for each claim event (exactly once: claimant, and for a new claim
+/// the market's officers) and then pushes a
 /// ClaimUpdated hint over SignalR. Its own consumer group, so it is independent of the projector:
 /// a slow or failing notifier never delays exposure, and vice versa.
 /// </summary>
@@ -31,7 +33,12 @@ public sealed class RealtimeNotifierConsumer(
             return;
         }
 
-        var notifications = NotificationProjection.For(envelope);
+        // Officers of the market hear about a new claim; look them up only for that event.
+        IReadOnlyCollection<Guid> marketOfficers = envelope.EventType == ClaimEventTypes.ClaimSubmitted
+            ? (await services.GetRequiredService<IUserRepository>().GetStaffAsync(envelope.Market, ct))
+                .Where(u => u.Role == UserRole.ClaimsOfficer).Select(u => u.Id).ToList()
+            : [];
+        var notifications = NotificationProjection.For(envelope, marketOfficers);
         var isNew = await services.GetRequiredService<INotificationRepository>().AddOnceAsync(GroupId, envelope.EventId, notifications, ct);
         if (!isNew)
         {

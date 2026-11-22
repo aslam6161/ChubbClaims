@@ -27,6 +27,7 @@
       live() === 'live' ? 'Live' : live() === 'paused' ? 'Live updates paused' : 'Connecting…'
     }}</span>
   </span>
+  <app-notification-bell />
   @if (user(); as u) {
     <span class="who">
       <strong>{{ u.name }}</strong>

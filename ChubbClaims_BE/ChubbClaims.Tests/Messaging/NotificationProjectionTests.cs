@@ -47,6 +47,29 @@ public class NotificationProjectionTests
     }
 
     [Fact]
+    public void Officers_of_the_market_hear_about_a_new_claim()
+    {
+        Guid[] officers = [Guid.NewGuid(), Guid.NewGuid()];
+        var submitted = ThroughTheWire(InStatus(ClaimStatus.Submitted)).Single();
+
+        var notifications = NotificationProjection.For(submitted, officers);
+
+        notifications.Select(n => n.UserId).ShouldBe([Claimant.UserId, .. officers], ignoreOrder: true);
+        notifications.Where(n => officers.Contains(n.UserId)).ShouldAllBe(n =>
+            n.Message == "New motor claim CLM-MY-2026-000001 is waiting to be picked up. Decision due by 1 Dec 2026.");
+    }
+
+    [Fact]
+    public void Officers_hear_about_new_claims_only_not_every_step()
+    {
+        Guid[] officers = [Guid.NewGuid()];
+        var laterSteps = ThroughTheWire(InStatus(ClaimStatus.Settled)).Skip(1); // after ClaimSubmitted
+
+        laterSteps.SelectMany(e => NotificationProjection.For(e, officers))
+            .ShouldNotContain(n => n.UserId == officers[0]);
+    }
+
+    [Fact]
     public void Reserve_changes_never_reach_the_claimant()
     {
         var claim = InStatus(ClaimStatus.UnderReview);

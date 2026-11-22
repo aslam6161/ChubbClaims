@@ -33,6 +33,8 @@ export type ExposureReport = Schemas['ExposureReportResponse'];
 
 // Notifications
 export type NotificationList = Schemas['NotificationListResponse'];
+/** Named so it doesn't clash with the browser's own `Notification`. */
+export type AppNotification = Schemas['NotificationResponse'];
 
 // Errors
 export type ProblemDetails = Schemas['ProblemDetails'];

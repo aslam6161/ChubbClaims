@@ -6,14 +6,30 @@ namespace ChubbClaims.Messaging.Projections;
 
 /// <summary>
 /// Who is told what for each claim event (pure, unit tested). Claimants hear about their claim's
-/// progress; the assigned officer hears when the claimant answers. Reserve changes are internal
-/// and never produce a claimant notification.
+/// progress; the claims officers of the market hear about a new claim waiting to be picked up; the
+/// assigned officer hears when the claimant answers. Reserve changes are internal and never produce
+/// a claimant notification.
 /// </summary>
 public static class NotificationProjection
 {
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
-    public static IReadOnlyList<Notification> For(EventEnvelope e)
+    public static IReadOnlyList<Notification> For(EventEnvelope e) => For(e, []);
+
+    /// <param name="marketOfficerIds">Claims officers of the claim's market. Only used for a new
+    /// claim, so the caller looks them up only for ClaimSubmitted.</param>
+    public static IReadOnlyList<Notification> For(EventEnvelope e, IReadOnlyCollection<Guid> marketOfficerIds)
+    {
+        var forClaimant = ForClaimantOrAssignedOfficer(e);
+        if (e.EventType != ClaimEventTypes.ClaimSubmitted || marketOfficerIds.Count == 0)
+            return forClaimant;
+
+        var due = e.DataAs<ClaimSubmittedData>().SlaDueAt.ToString("d MMM yyyy", Invariant);
+        var message = $"New {e.ClaimType.ToString().ToLowerInvariant()} claim {e.ClaimNumber} is waiting to be picked up. Decision due by {due}.";
+        return [.. forClaimant, .. marketOfficerIds.Select(id => new Notification(id, e.ClaimId, e.ClaimNumber, message, e.OccurredAt))];
+    }
+
+    private static IReadOnlyList<Notification> ForClaimantOrAssignedOfficer(EventEnvelope e)
     {
         var n = e.ClaimNumber;
 

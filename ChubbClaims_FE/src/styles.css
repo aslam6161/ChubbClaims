@@ -5,6 +5,12 @@
   text-underline-offset: 2px;
 }
 
+/* The notification menu renders in an overlay, outside the bell component's styles. */
+.notification-menu.mat-mdc-menu-panel {
+  width: 24rem;
+  max-width: calc(100vw - 2rem);
+}
+
 /* Pop-up messages by meaning (see _services/toast.ts). Each has its own colour AND icon; all
    text/background pairs pass WCAG AA (white on green or red is 6.5:1). */
 .toast {
