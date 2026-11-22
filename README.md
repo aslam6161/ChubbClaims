@@ -111,6 +111,7 @@ Stop the `api` container first (`docker compose stop api`), since both use port 
 |---|---|---|
 | Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.Tests` | 284 |
 | Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 99 |
+| Browser tests (Playwright) against the running stack, any state | `cd ChubbClaims_FE && npm run e2e` ([how](ChubbClaims_FE/README.md#browser-tests)) | 38 |
 | End-to-end smoke tests (xUnit) against the running stack: real SQL Server, Kafka and SignalR, any state | `dotnet test ChubbClaims_BE/ChubbClaims.SmokeTests` ([how](ChubbClaims_BE/ChubbClaims.SmokeTests/README.md)) | 46 tests, 105 checks |
 
 `dotnet test ChubbClaims_BE/ChubbClaims.slnx` runs both backend suites. Without the stack running, the smoke tests show as skipped, not failed.
@@ -132,7 +133,11 @@ Checked by hand against the stack (steps in the [journal](AI_JOURNAL.md)):
 - **Stopping Kafka:** claims are still accepted, and events drain from the outbox when Kafka returns
 
 Frontend tests cover the guards, interceptors, the allowed-action table, FNOL validation (including the reporting deadline), realtime reload and polling, search and paging (including keeping the current page on screen while the next loads), toasts, the notification bell, and component tests for the claimant list, the work queue (including a 409) and the Team page.
-Each web phase was also checked in a real browser against the running stack: both user types end to end, a decision in one browser updating another, and every screen at phone width.
+The browser tests drive the real app against the real stack:
+- **Both user types end to end:** report an incident, answer a question, pick up, reserve, approve, settle, reject
+- **Live updates:** a decision in one browser shows in another, and a 409 from a stale queue is explained
+- **Notifications:** pop-ups with a chime, the bell, and photos and documents going both ways
+- **Robustness:** a claimant never downloads staff code; the screen keeps working without a WebSocket; every screen fits a phone
 
 ---
 
@@ -187,7 +192,7 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | Web P0 | Loading, empty and error states; ProblemDetails shown in plain words; unit tests | ✅ |
 | Web P1 | SignalR live updates with a polling fallback; Team page (workload, manager exposure) | ✅ |
 | Web P1 | Server-side search and pagination on My claims and the work queue | ✅ |
-| Web P2 | Committed Playwright end-to-end suite | ✂️ cut (browser checks were run per phase but not committed) |
+| Web P2 | Committed Playwright end-to-end suite | ✅ (38 tests, `npm run e2e`) |
 | Web P2 | nginx container for the web app in docker compose | ✂️ cut (`npm start` runs it) |
 | Web P2 | Notification bell with a chime; officers notified of new claims in their market | ✅ |
 | Extra | Photos and documents on a claim (claimant and staff): private storage, type checked from the bytes, live updates and notifications | ✅ (Cloudinary adapter built; verified with the local-disk fallback only) |
@@ -218,6 +223,7 @@ ChubbClaims_BE/
   ChubbClaims.Tests          unit tests
   ChubbClaims.SmokeTests     end-to-end tests against the running stack (HTTP and SignalR, black-box)
 ChubbClaims_FE/              Angular 22 web app for claimants and claims staff (see its README)
+  e2e/                       browser tests (Playwright) against the running stack
 docs/screenshots/            the screenshots above
 ```
 

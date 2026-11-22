@@ -26,7 +26,8 @@ The dev server proxies `/api`, `/hubs` (WebSockets) and `/health` to the API on 
 | Command | What it does |
 |---|---|
 | `npm start` | Dev server on :4200 with the API proxy |
-| `npm test` | Unit tests (Vitest), 64 tests |
+| `npm test` | Unit tests (Vitest), 99 tests |
+| `npm run e2e` | Browser tests (Playwright) against the running stack, 38 tests |
 | `npm run build` | Production build into `dist/` |
 | `npm run api:types` | Regenerates `src/app/_api/schema.d.ts` from the running API's OpenAPI document |
 
@@ -76,10 +77,42 @@ src/app/
 
 ## Tests
 
-`npm test` runs 64 unit tests: guards, interceptors, status labels and the allowed-action table, FNOL validation, realtime reload, polling and connection state, and component tests for My claims, the work queue (including the 409) and the Team page.
+`npm test` runs 99 unit tests (`*.spec.ts` next to the code they test). They cover:
+- guards, interceptors, status labels and the allowed-action table
+- FNOL validation, including the reporting deadline
+- realtime reload, polling and connection state
+- search and paging, toasts, the notification bell, and the photo checks
+- component tests for My claims, the work queue (including the 409) and the Team page
 
-Each phase was also checked in a real browser against the running stack: both user types end to end, a decision in one browser updating another, and every screen at phone width with no sideways page scroll.
-Those Playwright scripts were for verification and aren't committed. A committed Playwright suite is the first thing I'd add (P2 in FRONTEND.md).
+### Browser tests
+
+`npm run e2e` runs 38 Playwright tests (`e2e/*.e2e.ts`) in Chromium against the real API, database, Kafka and SignalR.
+
+```bash
+docker compose up -d                 # from the repository root: the API and its stack
+npx playwright install chromium      # once
+npm run e2e                          # starts `npm start` if it isn't already running; about 2½ minutes
+```
+
+- **Any state, any number of runs.** Each test creates the claims it needs through the API, drives the app through the browser, and closes its claims at the end. No fresh seed is needed. The demo users' lists do collect these closed claims, so reset the database before a demo.
+- **One browser per user.** A test can have a claimant and an officer signed in side by side, which is how live updates and notifications are tested.
+- **Console errors fail the test.** Any error in a browser console fails it, unless the test expects that error (a 409 it provokes, say).
+- **Sound and pop-ups are recorded.** Chimes are counted by wrapping Web Audio. Every pop-up a page shows is recorded, so a newer one replacing it can't hide it.
+- **On failure:** a screenshot and a trace are saved; `npx playwright show-report e2e-report`.
+- **In VS Code:** with the Playwright extension (recommended in `.vscode/extensions.json`), the tests appear in the Testing panel and can be run or debugged one at a time.
+- **Settings:** `E2E_API_URL` and `E2E_WEB_URL` override the defaults (`http://127.0.0.1:5080`, `http://localhost:4200`).
+
+| File | What it covers |
+|---|---|
+| `sign-in` | Redirect to sign-in, each role's home, a claimant never downloads staff code (and vice versa), refresh, sign out |
+| `claimant` | My claims and the banner, answering a question, reporting a motor or property incident, the date picker, the error state |
+| `officer` | Queue order, pick up, reserve, notes, ask, approve and settle, reject with cancel, a stale queue's 409, a manager's read-only view |
+| `realtime` | "Live" in the toolbar, a decision showing in another browser, a new claim reaching the queue and exposure, paused without a WebSocket |
+| `notifications` | Pop-ups with a chime, the bell count and menu, sound off, officers told of new claims (and another market not) |
+| `search-paging` | Page size, paging that keeps the current page on screen, search, the banner, the team page link |
+| `documents` | Photos and PDFs both ways, live, with previews, the viewer, drag and drop, and a closed claim |
+| `phone` | Every screen at 390 px with no sideways page scroll |
+| `toasts` | Info, error, warning and success pop-ups each look different |
 
 ## Out of scope
 
