@@ -4,6 +4,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { provideNativeDateAdapter } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -24,6 +26,7 @@ import {
   applyServerErrors,
   createFnolForm,
   DAMAGE_TYPES,
+  fromIsoDate,
   localIsoDate,
   toSubmitRequest,
 } from './fnol-form';
@@ -35,6 +38,7 @@ import {
     DatePipe,
     MatButtonModule,
     MatCheckboxModule,
+    MatDatepickerModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -47,6 +51,8 @@ import {
     ReactiveFormsModule,
     RouterLink,
   ],
+  // Material's datepicker over plain JS Dates (only this screen picks dates).
+  providers: [provideNativeDateAdapter()],
   templateUrl: './report-incident.html',
   styleUrl: './report-incident.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -65,6 +71,16 @@ export class ReportIncident {
   protected readonly form = createFnolForm(() => this.selectedPolicy());
   protected readonly today = localIsoDate();
   protected readonly damageTypes = DAMAGE_TYPES;
+
+  /** The calendar only offers the days the API says can be reported for the chosen policy. */
+  protected readonly minDate = computed(() => {
+    const from = this.selectedPolicy()?.reportableFrom;
+    return from ? fromIsoDate(from) : null;
+  });
+  protected readonly maxDate = computed(() => {
+    const to = this.selectedPolicy()?.reportableTo;
+    return fromIsoDate(to ?? this.today);
+  });
 
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<AppError | null>(null);

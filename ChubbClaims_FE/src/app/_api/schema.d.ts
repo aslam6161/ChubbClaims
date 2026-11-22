@@ -1169,6 +1169,10 @@ export interface components {
             /** Format: date */
             effectiveTo: string;
             isActive: boolean;
+            /** Format: date */
+            reportableFrom: null | string;
+            /** Format: date */
+            reportableTo: null | string;
         };
         /** @enum {unknown} */
         Priority: "Normal" | "High" | null;

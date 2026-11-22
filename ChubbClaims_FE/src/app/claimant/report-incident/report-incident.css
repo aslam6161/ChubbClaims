@@ -24,6 +24,11 @@ mat-form-field {
   display: block;
   max-width: 22rem;
 }
+/* The stepper clips its content (for the expand animation), and an outlined field's floating
+   label sits half above the field. Give the first field in a step room so its label shows. */
+mat-form-field:first-child {
+  margin-top: 0.75rem;
+}
 mat-form-field.full {
   max-width: none;
 }

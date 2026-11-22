@@ -1,5 +1,12 @@
 import type { Policy } from '../../_models/api-types';
-import { applyClaimType, applyServerErrors, createFnolForm, toSubmitRequest } from './fnol-form';
+import {
+  applyClaimType,
+  applyServerErrors,
+  createFnolForm,
+  fromIsoDate,
+  localIsoDate,
+  toSubmitRequest,
+} from './fnol-form';
 
 const motorPolicy: Policy = {
   policyNumber: 'POL-MY-M-0001',
@@ -9,6 +16,8 @@ const motorPolicy: Policy = {
   effectiveFrom: '2026-01-01',
   effectiveTo: '2026-12-31',
   isActive: true,
+  reportableFrom: '2026-01-01', // as the API computes it for "today" 2026-11-21
+  reportableTo: '2026-11-21',
 };
 const propertyPolicy: Policy = {
   ...motorPolicy,
@@ -24,7 +33,7 @@ function formFor(policy: Policy, today = '2026-11-21') {
   form.controls.policyNumber.setValue(policy.policyNumber);
   applyClaimType(form, policy.productType);
   form.controls.details.setValue({
-    incidentDate: '2026-11-20',
+    incidentDate: new Date(2026, 10, 20), // 20 Nov, local time
     incidentLocation: ' Jalan Ampang ',
     description: 'Rear-ended',
     estimatedLossAmount: 7500,
@@ -33,6 +42,20 @@ function formFor(policy: Policy, today = '2026-11-21') {
 }
 
 describe('FNOL form', () => {
+  it('converts between picked days and the API date without shifting a day', () => {
+    expect(localIsoDate(new Date(2026, 0, 1))).toBe('2026-01-01');
+    expect(localIsoDate(fromIsoDate('2026-12-31'))).toBe('2026-12-31');
+  });
+
+  it('accepts today and the first day of cover (boundaries are inclusive)', () => {
+    const date = formFor(motorPolicy).controls.details.controls.incidentDate;
+
+    date.setValue(new Date(2026, 10, 21)); // "today" in formFor
+    expect(date.valid).toBe(true);
+    date.setValue(new Date(2026, 0, 1)); // effectiveFrom
+    expect(date.valid).toBe(true);
+  });
+
   it('requires vehicle details for a motor policy and ignores property fields', () => {
     const form = formFor(motorPolicy);
 
@@ -57,7 +80,7 @@ describe('FNOL form', () => {
   it('rejects a future incident date', () => {
     const date = formFor(motorPolicy).controls.details.controls.incidentDate;
 
-    date.setValue('2026-11-22');
+    date.setValue(new Date(2026, 10, 22));
 
     expect(date.hasError('future')).toBe(true);
   });
@@ -66,9 +89,26 @@ describe('FNOL form', () => {
     const date = formFor({ ...motorPolicy, effectiveFrom: '2026-06-01' }).controls.details.controls
       .incidentDate;
 
-    date.setValue('2026-05-31');
+    date.setValue(new Date(2026, 4, 31));
 
     expect(date.hasError('notCovered')).toBe(true);
+  });
+
+  it('rejects a covered date that is past the reporting deadline (earliest day from the API)', () => {
+    const expired: Policy = {
+      ...motorPolicy,
+      effectiveFrom: '2025-01-01',
+      effectiveTo: '2025-12-31',
+      reportableFrom: '2025-11-21', // reporting window cuts into the cover
+      reportableTo: '2025-12-31',
+    };
+    const date = formFor(expired).controls.details.controls.incidentDate;
+
+    date.setValue(new Date(2025, 5, 1)); // covered, but too long ago to report
+    expect(date.getError('tooLate')).toEqual({ from: '2025-11-21' });
+
+    date.setValue(new Date(2025, 10, 21)); // the earliest reportable day itself
+    expect(date.valid).toBe(true);
   });
 
   it('rejects a zero estimate but allows none', () => {
