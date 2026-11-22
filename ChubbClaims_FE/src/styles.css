@@ -64,6 +64,36 @@
   content: 'error';
 }
 
+/* A notice on the page, coloured by meaning like the pop-ups. Warning = something needs the
+   user's action; as a link it takes them straight to it. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+}
+.banner--warning {
+  background: #ffe8b3;
+  color: #5c3d00;
+  border-left: 4px solid #e0a800;
+}
+a.banner {
+  transition: background-color 0.15s;
+}
+a.banner--warning:hover,
+a.banner--warning:focus-visible {
+  background: #ffd98a;
+}
+a.banner:hover span {
+  text-decoration: underline;
+}
+.banner .go {
+  margin-left: auto;
+}
+
 /* Responsive basics shared by every screen (no mobile-specific layouts: out of scope). */
 
 /* A wide table scrolls inside its own box; the page itself never scrolls sideways. */

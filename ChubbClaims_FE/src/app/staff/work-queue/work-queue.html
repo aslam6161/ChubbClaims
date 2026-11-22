@@ -18,13 +18,15 @@
   }
 </mat-tab-group>
 
+<div class="toolbar">
+  <app-search-box label="Search claim, policy or place" (search)="query.setSearch($event)" />
+</div>
+
 <app-page-state
   [loading]="queue.isLoading()"
   [error]="queue.error()"
   [empty]="rows().length === 0"
-  [emptyMessage]="
-    view() === 'Unassigned' ? 'No unassigned claims in your market.' : 'You have no open claims.'
-  "
+  [emptyMessage]="emptyMessage()"
   (retry)="queue.reload()"
 >
   <div class="table-scroll">
@@ -98,4 +100,14 @@
       ></tr>
     </table>
   </div>
+  @if (total() > 0) {
+    <mat-paginator
+      [length]="total()"
+      [pageIndex]="query.page() - 1"
+      [pageSize]="query.pageSize()"
+      [pageSizeOptions]="pageSizes"
+      (page)="query.onPage($event)"
+      aria-label="Pages of the work queue"
+    />
+  }
 </app-page-state>

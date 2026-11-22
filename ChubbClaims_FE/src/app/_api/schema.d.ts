@@ -200,7 +200,11 @@ export interface paths {
         /** My claims */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    search?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -213,7 +217,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ClaimSummaryResponse"][];
+                        "application/json": components["schemas"]["MyClaimsPageResponse"];
                     };
                 };
             };
@@ -947,6 +951,9 @@ export interface paths {
                     view?: components["schemas"]["WorkQueueView"];
                     status?: components["schemas"]["ClaimStatus"];
                     sort?: components["schemas"]["WorkQueueSort"];
+                    search?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -960,7 +967,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["WorkQueueItemResponse"][];
+                        "application/json": components["schemas"]["WorkQueuePageResponse"];
                     };
                 };
             };
@@ -1111,6 +1118,19 @@ export interface components {
             vehicleRegistration: string;
             thirdPartyInvolved: boolean;
             policeReportNumber: null | string;
+        };
+        MyClaimsPageResponse: {
+            items: components["schemas"]["ClaimSummaryResponse"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            awaitingYouCount: number;
+            /** Format: uuid */
+            oldestAwaitingYouClaimId: null | string;
         };
         NoteResponse: {
             /** Format: uuid */
@@ -1272,6 +1292,17 @@ export interface components {
             /** Format: double */
             outstandingReserve: number;
             currency: string;
+        };
+        WorkQueuePageResponse: {
+            items: components["schemas"]["WorkQueueItemResponse"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            overdueCount: number;
         };
         /** @enum {unknown} */
         WorkQueueSort: "Sla" | "Reported";

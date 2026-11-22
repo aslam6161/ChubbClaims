@@ -125,7 +125,7 @@ const [ws, team] = await call("GET", "/api/team/workload", tokens["officer.my"])
 const me = team?.officers.find((o) => o.name === "Hafiz Ismail");
 const [, queue] = await call("GET", "/api/work-queue?view=mine", tokens["officer.my"]);
 check("team workload: MY staff only", ws === 200 && team.market === "MY" && team.officers.length === 2, team?.officers.map((o) => `${o.name} ${o.role}`));
-check("officer's open count matches their work queue", me && me.openClaims === queue.length, `${me?.openClaims} vs ${queue.length}`);
+check("officer's open count matches their work queue", me && me.openClaims === queue.totalCount, `${me?.openClaims} vs ${queue.totalCount}`);
 check("open by status adds up", me && me.underReview + me.awaitingClaimant + me.approvedAwaitingPayment === me.openClaims, me);
 check("claimant cannot read team workload -> 403", (await call("GET", "/api/team/workload", tokens["claimant.my"]))[0] === 403);
 

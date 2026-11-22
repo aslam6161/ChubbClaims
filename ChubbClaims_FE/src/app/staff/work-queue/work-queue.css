@@ -15,7 +15,10 @@ h1 {
   font-weight: 500;
 }
 mat-tab-group {
-  margin: 0.5rem 0 1rem;
+  margin: 0.5rem 0 0.75rem;
+}
+.toolbar {
+  margin-bottom: 0.75rem;
 }
 .queue {
   width: 100%;

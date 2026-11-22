@@ -33,6 +33,14 @@ public sealed record InformationResponseRequest([Required, MaxLength(4000)] stri
 
 public sealed record SubmitClaimResponse(Guid Id, string ClaimNumber, ClaimStatus Status);
 
+/// <summary>
+/// One page of the claimant's claims. AwaitingYouCount and OldestAwaitingYouClaimId cover all their
+/// claims (not just the search or page), for the "needs information from you" banner and its link.
+/// </summary>
+public sealed record MyClaimsPageResponse(
+    IReadOnlyList<ClaimSummaryResponse> Items, int Page, int PageSize, int TotalCount,
+    int AwaitingYouCount, Guid? OldestAwaitingYouClaimId);
+
 public sealed record ClaimSummaryResponse(
     Guid Id,
     string ClaimNumber,

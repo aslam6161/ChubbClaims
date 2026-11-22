@@ -382,14 +382,14 @@ Base path `/api`. All errors are **ProblemDetails**. Auth: `Authorization: Beare
 ### Claimant (`Claimant` role)
 - `GET  /api/policies/mine`: the caller's policies (to pick on FNOL)
 - `POST /api/claims`: submit FNOL. Returns **201** + `{ id, claimNumber, status }`
-- `GET  /api/claims/mine`
+- `GET  /api/claims/mine?search=&page=1&pageSize=20`: a page of my claims (newest first) with `totalCount`, plus `awaitingYouCount` and `oldestAwaitingYouClaimId` over **all** my claims (not just the page or the search). Search matches claim number, policy, place and description
 - `GET  /api/claims/{id}`: owner or staff in the claim's market. **404 (not 403) for anyone else**, including staff from another market. Staff additionally get `reserveAmount`, `outstandingReserve`, `priority`, `assignedOfficerId`, `reserveHistory`, `notes` (null for claimants)
 - `POST /api/claims/{id}/information-requests/{requestId}/response` `{ response }`
 - `GET  /api/notifications/mine` (P1)
 
 ### Officer (`ClaimsOfficer`, `ClaimsManager`)
 - `GET  /api/work-queue?view=unassigned|mine&status=&sort=sla|reported`: scoped to the officer's market. Each row has claimNumber, type, status, reportedAt, ageDays, slaDueAt, isOverdue, waitingOn (`Officer` | `Claimant`), outstandingReserve, currency
-  - `unassigned` = claims in my market with no assignee; `mine` = my claims, **open only** unless `status` is given (so closed claims can still be found). Max 200 rows (paging is a "more time" item)
+  - `unassigned` = claims in my market with no assignee; `mine` = my claims, **open only** unless `status` is given (so closed claims can still be found). Paged: `search=&page=1&pageSize=20` (max 100), returns `items`, `totalCount` and `overdueCount` (the whole tab, before the search). Search matches claim number, policy and place. Bad paging values are a 400
   - `isOverdue` = SLA date passed **without a decision** (approved claims awaiting payment are not overdue); the SLA clock keeps running while waiting on the claimant (pausing it is a "more time" item)
   - `waitingOn` = `Officer` (Submitted, UnderReview, Approved), `Claimant` (AwaitingInformation), `Nobody` (closed). Rules live in `Domain/Rules/ClaimProgress`
   - Projected in SQL (no aggregate loading); outstanding reserve computed in the query with the same rule as `Claim.OutstandingReserve`
