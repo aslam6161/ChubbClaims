@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { problemInterceptor } from '../../_interceptors/problem.interceptor';
-import type { WorkQueueItem } from '../../_models/api-types';
+import type { WorkQueueItem, WorkQueuePage } from '../../_models/api-types';
 import { WorkQueue } from './work-queue';
 
 function item(overrides: Partial<WorkQueueItem>): WorkQueueItem {
@@ -27,11 +27,20 @@ function item(overrides: Partial<WorkQueueItem>): WorkQueueItem {
   };
 }
 
+function pageOf(items: WorkQueueItem[], overdueCount = 0): WorkQueuePage {
+  return { items, page: 1, pageSize: 20, totalCount: items.length, overdueCount };
+}
+
+/** The queue request for a tab (search and page are checked where they matter). */
+const queueFor =
+  (view: string) => (r: { url: string; params: { get(k: string): string | null } }) =>
+    r.url === '/api/work-queue' && r.params.get('view') === view;
+
 describe('WorkQueue', () => {
   let backend: HttpTestingController;
   let snackBar: { open: ReturnType<typeof vi.fn> };
 
-  async function render(rows: WorkQueueItem[]) {
+  async function render(rows: WorkQueueItem[], overdueCount = 0) {
     snackBar = { open: vi.fn() };
     TestBed.configureTestingModule({
       imports: [WorkQueue],
@@ -45,17 +54,20 @@ describe('WorkQueue', () => {
     backend = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(WorkQueue);
     fixture.detectChanges();
-    backend.expectOne('/api/work-queue?view=Unassigned&sort=Sla').flush(rows);
+    backend.expectOne(queueFor('Unassigned')).flush(pageOf(rows, overdueCount));
     await fixture.whenStable();
     fixture.detectChanges();
     return { fixture, page: fixture.nativeElement as HTMLElement };
   }
 
   it('renders the unassigned queue and highlights overdue claims', async () => {
-    const { page } = await render([
-      item({ id: 'a', claimNumber: 'CLM-MY-2026-000002', isOverdue: true, ageDays: 14 }),
-      item({ id: 'b', claimNumber: 'CLM-MY-2026-000001' }),
-    ]);
+    const { page } = await render(
+      [
+        item({ id: 'a', claimNumber: 'CLM-MY-2026-000002', isOverdue: true, ageDays: 14 }),
+        item({ id: 'b', claimNumber: 'CLM-MY-2026-000001' }),
+      ],
+      1, // the server's count for the whole queue
+    );
 
     const rows = page.querySelectorAll('tr.row');
     expect(rows.length).toBe(2);
@@ -83,7 +95,41 @@ describe('WorkQueue', () => {
       expect.anything(),
     );
     // ...and the queue is reloaded (flush it so the fixture can become stable).
-    backend.expectOne('/api/work-queue?view=Unassigned&sort=Sla').flush([]);
+    backend.expectOne(queueFor('Unassigned')).flush(pageOf([]));
+    await fixture.whenStable();
+  });
+
+  it('the overdue count is the whole queue, not just this page', async () => {
+    const { page } = await render([item({})], 7);
+
+    expect(page.textContent).toContain('7 overdue');
+  });
+
+  it('switching tabs keeps the search but starts at page 1', async () => {
+    const { fixture } = await render(Array.from({ length: 20 }, (_, i) => item({ id: `r${i}` })));
+    const component = fixture.componentInstance as unknown as {
+      query: {
+        setSearch(t: string): void;
+        onPage(e: { pageIndex: number; pageSize: number }): void;
+      };
+      selectTab(i: number): void;
+    };
+
+    component.query.setSearch('ampang');
+    TestBed.tick();
+    backend.expectOne(queueFor('Unassigned')).flush({ ...pageOf([item({})]), totalCount: 45 });
+    component.query.onPage({ pageIndex: 1, pageSize: 20 });
+    TestBed.tick();
+    const second = backend.expectOne(queueFor('Unassigned'));
+    expect(second.request.params.get('page')).toBe('2');
+    second.flush({ ...pageOf([item({})]), totalCount: 45 });
+
+    component.selectTab(1);
+    TestBed.tick();
+    const mine = backend.expectOne(queueFor('Mine'));
+    expect(mine.request.params.get('search')).toBe('ampang');
+    expect(mine.request.params.get('page')).toBe('1');
+    mine.flush(pageOf([]));
     await fixture.whenStable();
   });
 });

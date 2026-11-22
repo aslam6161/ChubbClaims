@@ -3,18 +3,21 @@ import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Toast } from '../../_services/toast';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { waitingOnLabel } from '../../_helpers/claim-status';
-import { valueOr } from '../../_helpers/resource';
+import { createListQuery, PAGE_SIZES } from '../../_helpers/paging';
+import { keepWhileLoading } from '../../_helpers/resource';
 import { reloadOnClaimUpdates } from '../../_services/realtime';
-import type { WorkQueueItem, WorkQueueView } from '../../_models/api-types';
+import type { WorkQueueItem, WorkQueuePage, WorkQueueView } from '../../_models/api-types';
 import { AppError } from '../../_models/app-error';
 import { MoneyPipe } from '../../_shared/money.pipe';
 import { PageState } from '../../_shared/page-state/page-state';
+import { SearchBox } from '../../_shared/search-box/search-box';
 import { StatusBadge } from '../../_shared/status-badge/status-badge';
 import { StaffClaims } from '../staff-claims';
 
@@ -25,12 +28,14 @@ import { StaffClaims } from '../staff-claims';
     DatePipe,
     MatButtonModule,
     MatIconModule,
+    MatPaginatorModule,
     MatProgressSpinnerModule,
     MatTableModule,
     MatTabsModule,
     MoneyPipe,
     PageState,
     RouterLink,
+    SearchBox,
     StatusBadge,
   ],
   templateUrl: './work-queue.html',
@@ -48,16 +53,30 @@ export class WorkQueue {
   ];
   protected readonly view = signal<WorkQueueView>('Unassigned');
 
-  protected readonly queue = httpResource<WorkQueueItem[]>(
-    () => `/api/work-queue?view=${this.view()}&sort=Sla`,
-  );
+  /** Search and page are applied by the server: only one page of the queue is downloaded. */
+  protected readonly query = createListQuery();
+  protected readonly pageSizes = PAGE_SIZES;
+
+  protected readonly queue = httpResource<WorkQueuePage>(() => ({
+    url: '/api/work-queue',
+    params: { view: this.view(), sort: 'Sla', ...this.query.params() },
+  }));
   constructor() {
     // Any change in my market can move a claim in or out of either tab.
     reloadOnClaimUpdates(this.queue);
   }
 
-  protected readonly rows = computed(() => valueOr(this.queue, [] as WorkQueueItem[]));
-  protected readonly overdue = computed(() => this.rows().filter((r) => r.isOverdue).length);
+  private readonly result = keepWhileLoading(this.queue);
+  protected readonly rows = computed(() => this.result()?.items ?? []);
+  protected readonly total = computed(() => this.result()?.totalCount ?? 0);
+  /** Whole queue (from the server), not just this page or this search. */
+  protected readonly overdue = computed(() => this.result()?.overdueCount ?? 0);
+  protected readonly emptyMessage = computed(() => {
+    if (this.query.search()) return `No claims in this tab match “${this.query.search()}”.`;
+    return this.view() === 'Unassigned'
+      ? 'No unassigned claims in your market.'
+      : 'You have no open claims.';
+  });
 
   protected readonly pickingUp = signal<string | null>(null);
   protected readonly waitingOn = waitingOnLabel;
@@ -75,6 +94,7 @@ export class WorkQueue {
 
   protected selectTab(index: number): void {
     this.view.set(this.views[index].view);
+    this.query.resetPage(); // keep the search, start the other tab at page 1
   }
 
   protected open(row: WorkQueueItem): void {

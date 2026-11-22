@@ -24,10 +24,12 @@ export type Policy = Schemas['PolicyResponse'];
 export type SubmitClaimRequest = Schemas['SubmitClaimRequest'];
 export type SubmitClaimResponse = Schemas['SubmitClaimResponse'];
 export type ClaimSummary = Schemas['ClaimSummaryResponse'];
+export type MyClaimsPage = Schemas['MyClaimsPageResponse'];
 export type ClaimDetail = Schemas['ClaimDetailResponse'];
 
 // Staff
 export type WorkQueueItem = Schemas['WorkQueueItemResponse'];
+export type WorkQueuePage = Schemas['WorkQueuePageResponse'];
 export type TeamWorkload = Schemas['TeamWorkloadResponse'];
 export type ExposureReport = Schemas['ExposureReportResponse'];
 

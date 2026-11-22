@@ -8,12 +8,8 @@
 h1 {
   margin: 0;
 }
-.callout {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.5rem 0 0;
-  color: #5c3d00;
+.toolbar {
+  margin: 0.25rem 0 0.75rem;
 }
 .claims {
   width: 100%;
