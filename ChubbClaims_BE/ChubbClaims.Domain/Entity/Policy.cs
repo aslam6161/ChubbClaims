@@ -42,4 +42,20 @@ public sealed class Policy
     public bool IsActive { get; private set; }
 
     public bool Covers(DateOnly date) => IsActive && date >= EffectiveFrom && date <= EffectiveTo;
+
+    /// <summary>
+    /// The incident dates a new claim on this policy can still use as of <paramref name="today"/>
+    /// (the market's local date): inside the cover, not in the future, and no older than the
+    /// reporting window. The same three rules Claim.Submit enforces. Null when no date qualifies,
+    /// e.g. a cancelled policy or a cover that ended longer ago than the window.
+    /// </summary>
+    public (DateOnly From, DateOnly To)? ReportableIncidentDates(DateOnly today, int maxIncidentAgeDays)
+    {
+        if (!IsActive)
+            return null;
+        var oldestReportable = today.AddDays(-maxIncidentAgeDays);
+        var from = EffectiveFrom > oldestReportable ? EffectiveFrom : oldestReportable;
+        var to = EffectiveTo < today ? EffectiveTo : today;
+        return from <= to ? (from, to) : null;
+    }
 }

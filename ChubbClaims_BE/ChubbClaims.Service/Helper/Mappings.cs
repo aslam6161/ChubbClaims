@@ -1,3 +1,4 @@
+using ChubbClaims.Domain.Constants;
 using ChubbClaims.Domain.Entity;
 using ChubbClaims.Domain.ValueObjects;
 using ChubbClaims.Service.DTOs.Auth;
@@ -11,8 +12,12 @@ public static class Mappings
 {
     public static UserResponse ToResponse(this User u) => new(u.Id, u.Name, u.Email, u.Role, u.Market);
 
-    public static PolicyResponse ToResponse(this Policy p) =>
-        new(p.PolicyNumber, p.ProductType, p.Market, p.Currency, p.EffectiveFrom, p.EffectiveTo, p.IsActive);
+    public static PolicyResponse ToResponse(this Policy p, DateTimeOffset now, int maxIncidentAgeDays)
+    {
+        var reportable = p.ReportableIncidentDates(Markets.LocalDate(p.Market, now), maxIncidentAgeDays);
+        return new(p.PolicyNumber, p.ProductType, p.Market, p.Currency, p.EffectiveFrom, p.EffectiveTo, p.IsActive,
+            reportable?.From, reportable?.To);
+    }
 
     public static IncidentReport ToIncidentReport(this SubmitClaimRequest r) => new(
         r.Type,
