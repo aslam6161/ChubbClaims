@@ -1,6 +1,6 @@
 import zlib from 'node:zlib';
 import { pickUp } from './support/api';
-import { expect, test } from './support/fixtures';
+import { expect, test, WEB_URL } from './support/fixtures';
 
 /** A real 120 × 80 PNG (orange with a dark stripe), so the browser really renders it. */
 function png(width = 120, height = 80): Buffer {
@@ -101,7 +101,9 @@ test('photos and documents go both ways between claimant and officer, live', asy
     claimant.getByRole('button', { name: 'Open police-report.pdf' }).click(),
   ]);
   const download = await tab.waitForEvent('download');
-  expect(download.url()).toMatch(/^blob:http:\/\/localhost:4200\//);
+  expect(download.url(), 'a local blob, not a storage URL').toMatch(
+    new RegExp(`^blob:${new URL(WEB_URL).origin}/`),
+  );
   await tab.close();
 
   // The officer's workbench updates by itself, and the officer is told.

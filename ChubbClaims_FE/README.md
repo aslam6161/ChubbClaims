@@ -6,17 +6,28 @@ The build spec, and the decisions behind it, are in [FRONTEND.md](FRONTEND.md).
 
 ## Run it
 
-Prerequisites: **Node 22.22+ or 24.15+** (tested with Node 24 and npm 11) and the backend running.
+**Just to use it:** `docker compose up --build` from the repository root also builds this app and serves it at http://localhost:4200 (the `web` container). Nothing else to install.
+
+**To work on it** with live reload: Node 22.22+ or 24.15+ (tested with Node 24 and npm 11), and the backend running.
 
 ```bash
 # 1. Backend: from the repository root (see the root README)
 docker compose up --build
+docker compose stop web   # frees port 4200 for the dev server
 
 # 2. Frontend
 cd ChubbClaims_FE
 npm ci
 npm start            # http://localhost:4200
 ```
+
+The `web` container ([Dockerfile](Dockerfile), [nginx.conf](nginx.conf)) builds the production bundle and serves it with nginx:
+- **One origin:** `/api`, `/hubs` (WebSockets) and `/health` are forwarded to the API container, as the dev server's proxy does.
+- **Deep links:** a link like `/staff/claims/{id}` loads the app. A missing file is a real 404, not the app's page.
+- **Caching:** `index.html` is never cached. The hashed bundles are cached for a year, since their names change with their content.
+- **Uploads:** photos up to 10 MB get through. nginx allows a little more, so the API, not nginx, refuses a larger file with its own message.
+- **Headers:** `nosniff`, `X-Frame-Options: DENY` and a same-origin referrer policy.
+- **API rebuilds:** nginx re-resolves the API's address, so rebuilding the API doesn't need a web restart.
 
 Pick any demo user on the sign-in page. There's no password: the page stands in for a real identity provider and only exists in Development.
 The dev server proxies `/api`, `/hubs` (WebSockets) and `/health` to the API on `127.0.0.1:5080` ([proxy.conf.json](proxy.conf.json)), so there's no CORS setup and the URLs match a production reverse proxy.
@@ -91,13 +102,14 @@ src/app/
 ```bash
 docker compose up -d                 # from the repository root: the API and its stack
 npx playwright install chromium      # once
-npm run e2e                          # starts `npm start` if it isn't already running; about 2½ minutes
+npm run e2e                          # about 2 minutes
 ```
 
 - **Any state, any number of runs.** Each test creates the claims it needs through the API, drives the app through the browser, and closes its claims at the end. No fresh seed is needed. The demo users' lists do collect these closed claims, so reset the database before a demo.
 - **One browser per user.** A test can have a claimant and an officer signed in side by side, which is how live updates and notifications are tested.
 - **Console errors fail the test.** Any error in a browser console fails it, unless the test expects that error (a 409 it provokes, say).
 - **Sound and pop-ups are recorded.** Chimes are counted by wrapping Web Audio. Every pop-up a page shows is recorded, so a newer one replacing it can't hide it.
+- **Against either build:** the tests use whatever answers at `http://localhost:4200`. That's the `web` container (the production build behind nginx) or `npm start`. If nothing answers, they start the dev server there.
 - **On failure:** a screenshot and a trace are saved; `npx playwright show-report e2e-report`.
 - **In VS Code:** with the Playwright extension (recommended in `.vscode/extensions.json`), the tests appear in the Testing panel and can be run or debugged one at a time.
 - **Settings:** `E2E_API_URL` and `E2E_WEB_URL` override the defaults (`http://127.0.0.1:5080`, `http://localhost:4200`).

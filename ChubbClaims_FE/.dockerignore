@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.angular/
+e2e/
+e2e-report/
+e2e-results/
+playwright.config.ts
+.vscode/
+Dockerfile
+.dockerignore
