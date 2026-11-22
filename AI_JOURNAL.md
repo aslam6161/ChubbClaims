@@ -221,3 +221,18 @@ Running log of how I directed the AI (Claude Code): what I asked, what I accepte
 - My test bugs, fixed before trusting results: Playwright text matching across separate `dt`/`dd` elements (no space, and the money uses a non-breaking space), and Material's paginator touch target sitting over its page-size select.
 - Committed as five branches, each built and tested on its own in a clean worktree before merging.
 - Verified: backend 219/219, Vitest 90/90, smoke 88/88; browser checks on fresh seeds: search and paging 20/20 (including 10 rows still on screen mid-load), claimant 18/18, officer 20/20, realtime 13/13, notifications 14/14, phone width 7/7.
+
+### 2026-11-22 · Photos and documents on a claim
+- Asked: image upload, "follow the WoodHeart project's image upload, can use Cloudinary".
+- Accepted from WoodHeart: a storage port with Cloudinary behind it (the only class that knows the SDK), type detection from the bytes rather than the name, server-chosen keys, never overwrite, and an API that still starts without credentials.
+- **Changed for this domain:** WoodHeart's product photos are public; claim evidence is personal data. So files are **private** in storage and only reachable through the API, after the same who-may-see-this check as the claim (404 for anyone else). The browser fetches them with the token and shows object URLs.
+- Added because a reviewer has no Cloudinary account: a local-disk fallback on a Docker volume, used when the credentials are missing. I asked whether to test with the Cloudinary keys from the user's other project; the user said no, so the Cloudinary adapter is built but verified only through local storage, and the README says so.
+- Modelled as a claim action: "attach document" is in the lifecycle table (allowed while the claim is open), so the exhaustive status × action test covers it, and it raises `DocumentAttached` through the outbox. The notifier tells the other side (claimant upload → assigned officer; staff upload → claimant).
+- **Ordering across two stores:** check → store → attach and save → delete the file if the save fails. A unit test forces the save to fail and checks that the file is removed.
+- **Bugs found by testing, not by reading:**
+  - The 11 MB check came back as a vague 400 from MVC's multipart limit, and the client hung because the server stopped reading mid-upload. A resource filter now answers 413 from the declared length before the body is read; the smoke test sends headers only.
+  - `ProducesResponseType<FileStreamResult>` leaked .NET internals (`EntityTagHeaderValue`, `StringSegment`) into the OpenAPI contract, and the form field was `File`. Found by regenerating the TypeScript types; now a binary `Stream` and `file`.
+  - Deleting a file whose folder didn't exist threw on Windows, so "safe to repeat" wasn't true. Fixed.
+  - **Pre-existing, found by the phone-width check:** the toolbar was 18 px too wide while the icon font loaded. A badge makes its icon `overflow: visible`, so the bell's ligature text "notifications" spilled out until the font arrived. The badge now sits on the button.
+- My test bugs: a realtime check counted rows before the list loaded, and I ran suites that need a fresh seed back to back.
+- Verified: backend 284/284 (65 new), Vitest 99/99 (9 new), smoke 105/105 on fresh seeds (documents 17/17). Browser: documents 14/14 (preview, viewer, PDF in a new tab, drag and drop, live update both ways, officer notified, closed claim read-only, phone width), and every earlier suite rerun on its own fresh seed (officer 20/20, claimant 18/18, realtime 13/13, notifications 14/14, phone 7/7, search and paging 20/20).

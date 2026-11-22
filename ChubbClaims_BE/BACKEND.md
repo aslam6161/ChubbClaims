@@ -37,7 +37,7 @@ This is a **2–3 hour sprint (5 h hard cap)**. Build a small, correct, defensib
 
 ### Explicitly out of scope (say so in the README)
 
-Real identity provider, document/photo uploads, payments integration, fraud scoring, real policy-admin integration (stubbed), FX conversion, email/SMS delivery, multi-language content, per-market regulatory rules.
+Real identity provider, virus scanning of uploads, payments integration, fraud scoring, real policy-admin integration (stubbed), FX conversion, email/SMS delivery, multi-language content, per-market regulatory rules.
 
 ---
 
@@ -383,7 +383,9 @@ Base path `/api`. All errors are **ProblemDetails**. Auth: `Authorization: Beare
 - `GET  /api/policies/mine`: the caller's policies (to pick on FNOL)
 - `POST /api/claims`: submit FNOL. Returns **201** + `{ id, claimNumber, status }`
 - `GET  /api/claims/mine?search=&page=1&pageSize=20`: a page of my claims (newest first) with `totalCount`, plus `awaitingYouCount` and `oldestAwaitingYouClaimId` over **all** my claims (not just the page or the search). Search matches claim number, policy, place and description
-- `GET  /api/claims/{id}`: owner or staff in the claim's market. **404 (not 403) for anyone else**, including staff from another market. Staff additionally get `reserveAmount`, `outstandingReserve`, `priority`, `assignedOfficerId`, `reserveHistory`, `notes` (null for claimants)
+- `GET  /api/claims/{id}`: owner or staff in the claim's market. **404 (not 403) for anyone else**, including staff from another market. Staff additionally get `reserveAmount`, `outstandingReserve`, `priority`, `assignedOfficerId`, `reserveHistory`, `notes` (null for claimants). Both see `documents` (id, fileName, contentType, sizeBytes, uploadedByRole, uploadedAt)
+- `POST /api/claims/{id}/documents` (multipart, field `file`), **added later:** the claimant who owns the claim or staff in its market, while the claim is open (409 when closed). JPEG, PNG, WebP or PDF, detected from the bytes (422 otherwise), at most 10 MB (413) and 20 per claim. Returns 201 with the document and raises `DocumentAttached` (the other side is notified)
+- `GET  /api/claims/{id}/documents/{documentId}/content`: the file, for the same people who can see the claim (404 otherwise). Served inline with `nosniff` and a private cache. See docs/decisions.md #21
 - `POST /api/claims/{id}/information-requests/{requestId}/response` `{ response }`
 - `GET  /api/notifications/mine` (P1)
 

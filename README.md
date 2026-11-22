@@ -109,9 +109,9 @@ Stop the `api` container first (`docker compose stop api`), since both use port 
 
 | Suite | How | Count |
 |---|---|---|
-| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 219 |
-| Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 90 |
-| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR); need Python 3 and Node | [scripts/smoke](scripts/smoke/README.md) | 88 checks in 4 scripts |
+| Backend unit tests (xUnit, Shouldly, NSubstitute) | `dotnet test ChubbClaims_BE/ChubbClaims.slnx` | 284 |
+| Frontend unit tests (Vitest) | `cd ChubbClaims_FE && npm test` | 99 |
+| End-to-end smoke tests against the running stack (real SQL Server, Kafka, SignalR); need Python 3 and Node | [scripts/smoke](scripts/smoke/README.md) | 105 checks in 5 scripts |
 
 Unit tests cover the claim state machine and every business rule, plus:
 - service orchestration and visibility
@@ -124,6 +124,7 @@ The smoke tests also cover things unit tests can't:
 - **Replaying the whole topic** (consumer offsets reset to 0): every event is skipped as a duplicate and exposure is unchanged
 - **Stopping Kafka:** claims are still accepted, and events drain from the outbox when Kafka returns
 - **Push isolation:** another market's officer and another claimant receive nothing
+- **Uploads:** an `.exe` renamed `photo.jpg` and an SVG are refused, an 11 MB upload gets a 413 before its body is read, and another claimant or market gets 404 for a file
 
 Frontend tests cover the guards, interceptors, the allowed-action table, FNOL validation (including the reporting deadline), realtime reload and polling, search and paging (including keeping the current page on screen while the next loads), toasts, the notification bell, and component tests for the claimant list, the work queue (including a 409) and the Team page.
 Each web phase was also checked in a real browser against the running stack: both user types end to end, a decision in one browser updating another, and every screen at phone width.
@@ -184,8 +185,9 @@ More detail, including the sequence and state diagrams: [docs/architecture.md](d
 | Web P2 | Committed Playwright end-to-end suite | ✂️ cut (browser checks were run per phase but not committed) |
 | Web P2 | nginx container for the web app in docker compose | ✂️ cut (`npm start` runs it) |
 | Web P2 | Notification bell with a chime; officers notified of new claims in their market | ✅ |
+| Extra | Photos and documents on a claim (claimant and staff): private storage, type checked from the bytes, live updates and notifications | ✅ (Cloudinary adapter built; verified with the local-disk fallback only) |
 
-**Out of scope by design:** real identity provider, document and photo uploads, payments integration, fraud scoring, real policy-admin integration (policies are seeded), FX conversion (exposure is reported per currency), email and SMS, multiple languages, per-market regulatory rules, layouts designed for mobile (the web app is responsive, not mobile-first), offline support.
+**Out of scope by design:** real identity provider, virus scanning of uploads, payments integration, fraud scoring, real policy-admin integration (policies are seeded), FX conversion (exposure is reported per currency), email and SMS, multiple languages, per-market regulatory rules, layouts designed for mobile (the web app is responsive, not mobile-first), offline support.
 
 **Known limitations I would fix next:**
 - Paging for notifications (the bell shows the latest 50).

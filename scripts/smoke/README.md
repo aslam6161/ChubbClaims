@@ -10,6 +10,7 @@ Prerequisites: **Python 3** (standard library only) for the `.py` scripts, and *
 | `officer_flow.py` | Work queue, every officer action, 10 simultaneous pick-up races (one 204, one 409) | **fresh seed** |
 | `claimant_flow.py` | Dev login, FNOL validation, visibility (404 not 403), answering an information request | **fresh seed** |
 | `exposure_flow.py` | Exposure read model updated from Kafka after an FNOL | any state |
+| `documents_flow.py` | Photos and documents: upload and read back, refused types and sizes (413 before the body is read), who may see them, the notification | any state |
 | `realtime_flow.mjs` | SignalR pushes and isolation, notifications, team workload | any state; `npm install` once |
 
 Run on a fresh database, in this order:
@@ -18,6 +19,7 @@ Run on a fresh database, in this order:
 python officer_flow.py
 python claimant_flow.py
 python exposure_flow.py
+python documents_flow.py
 npm install && npm run realtime
 ```
 
