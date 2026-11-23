@@ -64,7 +64,7 @@ sequenceDiagram
     actor M as Manager (browser)
 
     C->>API: POST /api/claims (JWT, X-Correlation-Id)
-    API->>API: Claim.Submit(...) validates policy, dates, details;<br/>raises ClaimSubmitted
+    API->>API: Claim.Submit(...) validates policy, dates, details<br/>and raises ClaimSubmitted
     API->>DB: one transaction: INSERT claim + history + OutboxMessages row
     API-->>C: 201 Created, CLM-MY-2026-000014
     Note over C,API: The user waits only for this. Kafka can be down.
@@ -77,14 +77,14 @@ sequenceDiagram
 
     par own consumer group each
         K->>EXP: ClaimSubmitted
-        EXP->>DB: one transaction: skip if (group, eventId) seen;<br/>UPDATE exposure SET open = open + 1, outstanding = outstanding + reserve;<br/>INSERT ProcessedEvents
+        EXP->>DB: one transaction: skip if (group, eventId) seen,<br/>UPDATE exposure SET open = open + 1, outstanding = outstanding + reserve,<br/>INSERT ProcessedEvents
         EXP-->>M: SignalR ExposureUpdated (managers)
     and
         K->>NOT: ClaimSubmitted
         NOT->>DB: one transaction: notifications + ProcessedEvents
         NOT-->>C: SignalR ClaimUpdated (owner + market staff)
     end
-    M->>API: GET /api/reports/exposure (push is a hint; REST is the truth)
+     M->>API: GET /api/reports/exposure (the push is a hint, REST is the truth)
 ```
 
 **Guarantees, and where they come from:**
